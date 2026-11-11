@@ -1,0 +1,5 @@
+node_modules/
+.agent-channel/
+.secrets/
+state/
+notes/

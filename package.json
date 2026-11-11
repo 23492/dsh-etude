@@ -1,0 +1,18 @@
+{
+  "name": "dsh-etude",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DeepSeek Harness plugin: the user's own Etude collection (decks, items, study, stats, packs) as an agent tool, synced to their Etude account through their Cloudflare Access identity.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": ["index.js", "lib/", "runner/", "README.md", "LICENSE"],
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/*.test.mjs"
+  },
+  "engines": { "node": ">=22.5" },
+  "license": "MIT"
+}
