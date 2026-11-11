@@ -45,6 +45,10 @@ test('loadEtudeSkill: DSH preface first, upstream body verbatim, version filled 
   assert.match(skill.content, /Never pass `--db`/)
   assert.match(skill.content, /Nothing irreversible/)
   assert.match(skill.content, /AI grading is off/)
+  assert.doesNotMatch(skill.content, /\{\{AI_RULE\}\}/)
+  const on = loadEtudeSkill(root, '3.1.2', { aiGrading: true })
+  assert.match(on.content, /AI grading is on, through the Etude server/)
+  assert.doesNotMatch(on.content, /AI grading is off/)
   rmSync(root, { recursive: true })
 })
 

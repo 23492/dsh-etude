@@ -37,8 +37,10 @@ const DESCRIPTION = [
   'Find commands with ["commands"] (full catalog) or ["<group>","--help"] / ["<group>","<verb>","--help"]; do not guess flags. Groups: deck preset item card tag note type scheduler study stats settings theme pack anki media market db sync(status, now).',
   'Model: an item has fields, a type (basic, typed, numeric, mcq, order, match, cloze, free, draw), a deck ("A::B"), tags ("a::b"); each item has one card per face with FSRS state. For more than a few cards write a pack file and run ["pack","import","file.md"] (see ["pack","new"]). Relative paths resolve against the session working directory.',
   'Quizzing in chat: ["study","next","--deck","X"] shows the next due card (private fields stay hidden), ["study","answer",<card>,<answer>] grades it, or ["study","rate",<card>,"good"] for self-graded cards.',
-  'Remove things by archiving (["item","archive",...], ["deck","archive",...]); deletes, resets and prunes are refused. Sign-in and Sync setup are handled by the plugin. AI grading is off: grade answers yourself in the chat.',
+  'Remove things by archiving (["item","archive",...], ["deck","archive",...]); deletes, resets and prunes are refused. Sign-in and Sync setup are handled by the plugin.',
 ].join('\n')
+const AI_ON = 'AI grading is on through the Etude server: ["study","answer",<card>,<answer>] grades open answers with AI and writes feedback. The model is fixed by the server; ai.* settings are managed by the plugin.'
+const AI_OFF = 'AI grading is off: grade answers yourself in the chat.'
 
 function truthy(v) {
   return v === true || v === 'true'
@@ -51,6 +53,7 @@ export function apply(ctx, config = {}) {
   const timeoutMs = Number(config.timeoutMs) > 0 ? Number(config.timeoutMs) : 120_000
   const syncMaxAgeSeconds = Number(config.syncMaxAgeSeconds) >= 0 ? Number(config.syncMaxAgeSeconds) : 60
   const allowInsecure = truthy(config.allowInsecureForTests)
+  const aiGrading = truthy(config.aiGrading)
   const access = {
     teamDomain: config.accessTeamDomain,
     audiences: Array.isArray(config.accessAudiences) ? config.accessAudiences.map(String) : [],
@@ -119,6 +122,7 @@ export function apply(ctx, config = {}) {
         skillsCtx.skills.registerProvider((control) => {
           skillControl = control
           return createEtudeSkillProvider({
+            aiGrading,
             getRuntime: async () => {
               const rt = runtime ?? (await startInstall())
               return { etudeRoot: rt.etudeRoot, version: rt.catalog.version }
@@ -138,7 +142,7 @@ export function apply(ctx, config = {}) {
     () =>
       ctx.tools.register({
         name: TOOL,
-        description: DESCRIPTION,
+        description: `${DESCRIPTION}\n${aiGrading ? AI_ON : AI_OFF}`,
         parameters: {
           type: 'object',
           additionalProperties: false,
@@ -174,7 +178,7 @@ export function apply(ctx, config = {}) {
           const cwd = cwdOf(exec)
           let checked
           try {
-            checked = checkInvocation(rt.index, argv, { cwd, dataDir })
+            checked = checkInvocation(rt.index, argv, { cwd, dataDir, aiGrading })
           } catch (e) {
             if (e instanceof PolicyError) return fail(e.message)
             throw e
@@ -202,6 +206,7 @@ export function apply(ctx, config = {}) {
               stdin: typeof args.stdin === 'string' ? args.stdin : '',
               writes: checked.writes,
               syncMaxAgeSeconds,
+              aiGrading,
             },
           })
           return JSON.parse(JSON.stringify({ ...result, notes: result.notes || [] }))
@@ -210,5 +215,5 @@ export function apply(ctx, config = {}) {
     'dsh-etude: tool',
   )
 
-  log.info(`${LOG} tool "${TOOL}" registered for ${access.emails.length} allowed email(s), Etude at ${etudeUrl}, data in ${dataDir}`)
+  log.info(`${LOG} tool "${TOOL}" registered for ${access.emails.length} allowed email(s), Etude at ${etudeUrl}, data in ${dataDir}, AI grading ${aiGrading ? 'on (Etude server)' : 'off'}`)
 }

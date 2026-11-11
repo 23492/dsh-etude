@@ -40,7 +40,7 @@ Policy, checked in the plugin against the cached catalog and again in the runner
 
 - **Denied:** `--db`; `sync` verbs other than `status` and `now` (the plugin owns the connection); `account` verbs other than `status` and `devices`; `serve`, `update`, `db restore`, `settings key`, `settings chatgpt`, `market publish`, `market index`, `agent ask` (needs an AI key the plugin does not manage).
 - **Irreversible commands:** refused, with no approval path (owner's decision, 2026-11-11). That is every command the catalog marks `confirm` plus `card reset`; the refusal names the archive equivalent.
-- **AI grading:** off on the plugin's device (owner's decision, 2026-11-11). `ai.*` settings, `settings test-ai`, provider keys are refused, and the runner answers `/v1/ai/` on the Etude origin itself with 403. The agent grades in chat and records with `study rate`.
+- **AI grading:** config flag `aiGrading`, default off. Off: `settings test-ai` refused and the runner answers `/v1/ai/` itself with 403; the agent grades in chat with `study rate`. On (owner's decision, 2026-11-11, revising the earlier "off"): the runner sets `ai.decision={kind:llm}` and `ai.feedback` to the Etude server's proxy with a placeholder key, once per collection; `study answer` grades with AI. In both modes `ai.*`, `settings key` and `settings chatgpt` stay refused, so grading can only go through the owner's server.
 - **Skill:** Etude's own `skill/` from the pinned tarball is served through `ctx.skills.registerProvider` as skill `etude`, upstream text untouched, with the DSH preface `skill/dsh.md` prepended at load time.
 - **Sync:** before a command, `sync now` when the last sync is older than `syncMaxAgeSeconds` (default 60); after a command the catalog marks `writes`, `sync now` again. All inside one runner process, so a call costs one Node start.
 - **Working directory:** the runner runs in the agent's session cwd, so `--fields-file notes.json` and `pack import deck.md` resolve like in bash.
@@ -80,7 +80,7 @@ Policy, checked in the plugin against the cached catalog and again in the runner
 ## Owner decisions (2026-11-11)
 
 - Deleting: archive only. Irreversible commands are refused outright.
-- AI grading on the agent's device: off. The agent grades in the chat.
+- AI grading on the agent's device: first off, then on through the Etude server (`aiGrading: true`).
 
 ## First live install, 2026-11-11
 

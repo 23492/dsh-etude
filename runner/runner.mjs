@@ -24,15 +24,15 @@ function clip(s) {
   return s.length > MAX_OUTPUT ? `${s.slice(0, MAX_OUTPUT)}\n[truncated]` : s
 }
 
-function installFetchHook(etudeUrl, jwt) {
+function installFetchHook(etudeUrl, jwt, aiGrading) {
   const origin = new URL(etudeUrl).origin
   const original = globalThis.fetch
   globalThis.fetch = (input, init = {}) => {
     const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url)
     if (url.origin !== origin) return original(input, init)
-    // AI grading is off for the agent's device (owner's decision, 2026-11-11). Grading settings can
+    // Without `aiGrading` the agent's device never uses the Worker's AI proxy. Grading settings can
     // arrive through sync from the browser, so the proxy is refused here, not only in settings.
-    if (url.pathname.startsWith('/v1/ai/')) {
+    if (url.pathname.startsWith('/v1/ai/') && !aiGrading) {
       return Promise.resolve(
         new Response(JSON.stringify({ error: { code: 'ai_off', message: 'AI grading is off for this collection in DSH; grade in the chat and record it with study rate.' } }), {
           status: 403,
@@ -78,7 +78,7 @@ async function main() {
     return { exitCode: 2, stdout: '', stderr: 'dsh-etude: --db is not available.\n', notes: [] }
   }
 
-  installFetchHook(job.etudeUrl, job.jwt)
+  installFetchHook(job.etudeUrl, job.jwt, job.aiGrading === true)
 
   const notes = []
   async function etude(argv, stdin = '') {
@@ -100,6 +100,26 @@ async function main() {
       throw Object.assign(new Error(`etude ${argv.join(' ')}: ${message}`), { exitCode: r.code })
     }
     return JSON.parse(r.out)
+  }
+
+  // AI grading through the Worker's proxy (/v1/ai/chat/completions on the Etude origin). The
+  // provider key stays a Worker secret; the forwarded Access identity is what the proxy checks, so
+  // the collection only gets a placeholder key. Model and effort are fixed by the Worker.
+  async function ensureAiGrading() {
+    const want = { kind: 'openai-chat', url: `${job.etudeUrl}/v1/ai/chat/completions`, apiKeyEnv: 'SELFHOST_AI_KEY' }
+    const cur = (await etudeJson(['settings', 'get', 'ai'])).value ?? {}
+    const ok = cur.feedback?.url === want.url && cur.feedback?.apiKeyEnv === want.apiKeyEnv && cur.decision?.kind === 'llm'
+    if (ok) return
+    const server = await fetch(`${job.etudeUrl}/v1/server`, { headers: { accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    if (!server?.ai) {
+      notes.push('AI grading is on in dsh-etude, but the Etude server offers no AI proxy; grade in the chat instead.')
+      return
+    }
+    const keyRun = await etude(['settings', 'key', 'set', want.apiKeyEnv], 'via-access')
+    if (keyRun.code !== 0) throw new Error(`could not set the placeholder AI key: ${keyRun.err.trim()}`)
+    const feedback = { ...want, model: server.ai.model || 'server', vision: false, timeoutMs: 90000, temperature: 0.3 }
+    await etudeJson(['settings', 'set', `ai.decision=${JSON.stringify({ kind: 'llm' })}`, `ai.feedback=${JSON.stringify(feedback)}`, 'ai.vision=null'])
+    notes.push(`AI grading set up through the Etude server (${server.ai.model}, effort ${server.ai.effort}).`)
   }
 
   let sync = { linked: false, synced: false }
@@ -124,6 +144,7 @@ async function main() {
         }
         if (!status.unlocked) status = (await etudeJson(['sync', 'unlock'])).status ?? (await etudeJson(['sync', 'status']))
       }
+      if (job.aiGrading === true) await ensureAiGrading()
       const last = status.lastSync ? Date.parse(status.lastSync) : 0
       if (Date.now() - last > (job.syncMaxAgeSeconds ?? 60) * 1000) status = await etudeJson(['sync', 'now'])
       sync = { linked: true, synced: true }

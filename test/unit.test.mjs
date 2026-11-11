@@ -171,6 +171,19 @@ test('policy: AI grading settings are refused, other settings are not', () => {
   assert.equal(checkInvocation(catalog, ['settings', 'set', 'accent=teal'], env).cmd.name, 'settings set')
 })
 
+test('policy: with aiGrading on, test-ai runs but ai.* settings and keys stay plugin-owned', () => {
+  const env = { cwd: tmpdir(), dataDir: '/data/.dsh/dsh-etude', aiGrading: true }
+  assert.equal(checkInvocation(catalog, ['settings', 'test-ai'], env).cmd.name, 'settings test-ai')
+  for (const argv of [
+    ['settings', 'set', 'ai.feedback.url=https://x'],
+    ['settings', 'unset', 'ai.feedback'],
+    ['settings', 'key', 'set', 'OPENROUTER_API_KEY'],
+    ['settings', 'chatgpt', 'login'],
+  ]) {
+    assert.throws(() => checkInvocation(catalog, argv, env), PolicyError, argv.join(' '))
+  }
+})
+
 test('policy: no path argument may reach into the data directory, also through a symlink', () => {
   const root = mkdtempSync(join(tmpdir(), 'etude-pol-'))
   const dataDir = join(root, 'data')
