@@ -49,7 +49,7 @@ FIELD = {
     "options": {"kind": "json", "required": True, "private": True, "editor": "choices"},
     "multiple": {"kind": "boolean"},
     "shuffle": {"kind": "boolean", "default": True},
-    "teaches": {"kind": "json", "private": True, "label": "Begrippen", "description": "Intern: item-ids van de begripskaarten die deze vraag nodig heeft. De planner (cert-planner Worker) geeft de vraag vrij als die geleerd zijn en haalt ze terug na een fout."},
+    "teaches": {"kind": "json", "private": True, "label": "Begrippen", "description": "Intern: item-ids van de begripskaarten die deze vraag nodig heeft. De planner op de Sync-server geeft de vraag vrij als die geleerd zijn en haalt ze terug na een fout."},
 }
 COMMON = [
     {"name": "lesson", "kind": "markdown", "private": True, "label": "Les", "description": "Uitleg van het onderwerp, bij de eerste kaart ervan. Privé zodat het niet als titel boven een vraag verschijnt; prepare toont het in de uitlegstap."},

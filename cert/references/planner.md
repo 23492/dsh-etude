@@ -1,46 +1,41 @@
-# The planner Worker (release and miss follow-up)
+# The planner (release and miss follow-up)
 
-Etude cannot release a card when other cards are learned, and a custom scheduler only sees its own card. So a small Cloudflare Worker does it, next to the self-hosted Etude Sync Worker ([etude-cloudflare](https://github.com/23492/etude-cloudflare)), on the same D1 database, every 10 minutes. Code: `kit/planner/`. One Worker per deck.
+Etude cannot release a card when other cards are learned, and a custom scheduler only sees its own card. So a planner runs on the self-hosted Etude Sync server ([etude-cloudflare](https://github.com/23492/etude-cloudflare)), inside the Sync Worker's own cron, for every account and every certification deck on that server. Code: `kit/planner/src/planner.js`; etude-cloudflare takes it from this repo at every deploy, so there is one copy. Nothing has to be configured per deck or per person.
 
-It needs a self-hosted Sync server that keeps the vault key (Sync without a password). On etude.study's own Sync there is no server-side place to run it; then release by hand instead (`etude card due <card> --date <day>` after `stats` shows the concepts in review) or skip the release rule and let practice questions arrive by item order.
+It needs a Sync server that keeps the vault key (Sync without a password, the etude-cloudflare default). On etude.study's own Sync there is no server-side place to run it; then practice questions arrive in pack order, or you release them by hand (`etude card due <card> --date <day>` once `stats` shows the concepts in review).
 
 ## What it does
 
-- Reads the account's sync events from D1 and decrypts them with the server-kept vault key.
-- A practice question (`<types>-oefen`, item id `<items>.oefen.*`) waits on a far due date until every concept item in its private `teaches` field has a card in review, then becomes due `RELEASE_DAYS` after the last of them was first studied (start of that study day, like `etude card due --date`).
-- A practice question answered wrong, or right after the guess button, brings the linked concept cards in review back now. Each answer is handled once.
-- It writes only `/sync_due` and `/sync_due_at` on cards, as ordinary encrypted sync events with its own device id; devices pick them up at their next sync. It never rates and never touches mock exams or other decks.
+- Every 10 minutes the cron picks the account that waited longest among those with unread sync events or a plan due, decrypts that account's new events with the server-kept vault key, and keeps only what it needs.
+- A practice question is any item with a private `teaches` field (a list of concept item ids; `build_pack.py` writes it for `<types>-oefen` items). It waits on a far due date until every concept item in `teaches` has a card in review, then becomes due `releaseDays` after the last of them was first studied (start of that study day, like `etude card due --date`).
+- A practice question answered wrong, or right after the guess button, brings the linked concept cards in review back now. Each answer is handled once; answers older than two days when the planner first sees them are only marked as handled.
+- It writes only `/sync_due` and `/sync_due_at` on cards, as ordinary encrypted sync events with its own device id; devices pick them up at their next sync. It never rates, and never touches mock exams, other cards or other decks. Blocked accounts are skipped.
 
-## Configure (wrangler vars)
+## Settings come from the collection
 
-| var | meaning | SF value |
+| setting | where it is read | default |
 | --- | --- | --- |
-| `ACCOUNT_EMAIL` | the learner's Sync account | required |
-| `ITEM_PREFIX` | cert.json `ids.items` | `sfa` |
-| `TYPE_PREFIX` | cert.json `ids.types` | `sfl` |
-| `RELEASE_DAYS` | cert.json `practice.releaseDays` | `3` |
-| `LEARNING_STEPS`, `RELEARNING_STEPS` | count of the preset's learning and relearning steps | `2`, `1` |
-| `TZ`, `DAY_START_HOUR` | the learner's time zone and Etude's day start | `Europe/Amsterdam`, `4` |
-| `RUN_TOKEN` (secret) | bearer token for `/run`, `/seed`, `/status` | |
+| learning steps, relearning steps (count) | `learningSteps` / `relearningSteps` of the deck's preset and the deck's own config, root deck first, like Etude resolves them | 2 and 1 (Etude's defaults) |
+| days from "concepts learned" to release | `schedulerOptions.releaseDays` on the deck or preset, else the `releaseDays` option default of the question's scheduler (`<schedulers>-oefen`, set from cert.json `practice.releaseDays`) | 3 |
+| start of the study day | the collection's `dayStartHour` setting | 4 |
+| time zone | Worker var `PLANNER_TZ` (Etude does not sync a device time zone) | Europe/Amsterdam |
 
-Bindings: `DB` = the etude-sync D1 database. Cron `*/10 * * * *`. `kit/planner/wrangler.example.jsonc` has the shape.
+Changing a deck's learning steps or release days in the app works without a redeploy. `PLANNER=off` on the Sync Worker switches the planner off.
 
 ## Free-plan limits
 
-10 ms CPU per invocation. Each run decrypts at most 24 KB of new events (about 4 ms); a run that hits the limit leaves `inflight` set and the next one halves its budget. Planning happens only in a run that read nothing new. Measured: idle run 3 to 5 ms, planning run 4 to 10 ms. A backlog is worked off over several runs, so after a study session it can take 20 to 30 minutes before everything is handled.
+10 ms CPU per invocation, so one invocation works on one account: it decrypts at most a few dozen KB of new events, or it plans (only in a run that read nothing new). A run killed by the CPU limit leaves `inflight` set and the next run on that account reads half as much. A pack import makes thousands of events; the planner then needs some hours to catch up by itself, unless you seed the account.
 
-## Start and operate
+## Seeding an account (optional)
 
-1. Import the pack, study nothing yet, `etude sync now`.
-2. Deploy the Worker (Cloudflare API or `wrangler deploy`), set the secret.
-3. Seed it from the synced collection instead of replaying the whole log: `node kit/planner/seed.mjs <etude.db> <worker-url> <token> --items <items> --types <types>` (`etude db path` gives the database path).
-4. `curl -H "authorization: Bearer $TOKEN" <worker-url>/status`: `last.counts.locked` should equal the number of practice questions. `POST /run` runs once now.
+After a big import: `etude sync now`, then `node kit/planner/seed.mjs <etude.db> <sync-url> <admin-token> <email>` (`etude db path` gives the database path). It loads that account's planner state from the synced collection through the Sync Worker's `/admin/planner/seed` route. Answers already in the collection count as handled. `--dry` shows what it would send.
 
-State lives in `planner_meta`, `planner_rows`, `planner_cards`, `planner_handled` in the same D1; seeding again resets it. Changing the preset's learning steps means changing the vars too.
+## Operate
+
+- Status of every account: `GET /admin/planner` with the admin token (cursor, head, last run, counts: locked, waiting, released, answered, misses).
+- Run once now: `POST /admin/planner/run` (optionally `{"email": "..."}`).
+- State lives in `plan_meta`, `plan_rows`, `plan_cards`, `plan_handled` in the Sync server's D1, per account.
 
 ## Tests
 
-- `node kit/planner/test/synthetic.mjs`: self-contained (made-up deck with other prefixes): hold, release after the last concept, miss and guess bring the right cards back, a right answer and another deck's cards are left alone, learning-step counting, token guard.
-- `node --max-old-space-size=96 kit/planner/test/scenario-real.mjs <etude.db>`: the same on a copy of a real SF Platform Admin collection.
-
-Both need Node 22.5+ (`node:sqlite`). Re-run after every Etude update: the sync event format and the `etude card due` semantics are Etude internals.
+`node kit/planner/test/planner.test.mjs` (Node 22.5+, `node:sqlite`): two accounts with decks of different prefixes and settings; hold, release after the deck's own learning steps and release days, the scheduler-option fallback, miss and guess bring the right cards back, a right answer, mock exams and other cards are left alone, accounts without a server-kept key and blocked accounts are skipped. etude-cloudflare's CI runs it before every deploy. Re-run after every Etude update: the sync event format and `etude card due` semantics are Etude internals.

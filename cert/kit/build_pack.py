@@ -259,7 +259,7 @@ for iid, refs in teaches_refs.items():
 pack_fp = os.path.join(ROOT, C["paths"].get("pack", "deck.pack.json"))
 json.dump(teaches, open(os.path.join(os.path.dirname(pack_fp), "teaches.json"), "w"), indent=1)
 for it in items:
-    # The planner Worker reads this field: only live practice questions carry it.
+    # The planner on the Sync server reads this field: only live practice questions carry it.
     if it["type"] == f"{P_TYPE}-oefen" and not it.get("archived"):
         it["fields"]["teaches"] = teaches.get(it["id"], [])
 if missing_ladder: errors.append(f"{len(missing_ladder)} concept items without ladder content: {missing_ladder[:10]}")
