@@ -1,0 +1,11 @@
+{
+  "id": "__PREFIX__-toets",
+  "name": "Proefexamen",
+  "description": "Sealed mock exam question: answered once, never again. The result is the measurement. Started from the mock exam deck with Practice ahead; never part of the daily session.",
+  "ratings": false,
+  "options": [],
+  "stats": {
+    "groupBy": "last",
+    "label": "Uitslag"
+  }
+}

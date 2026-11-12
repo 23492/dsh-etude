@@ -9,7 +9,7 @@
     ".": "./index.js",
     "./package.json": "./package.json"
   },
-  "files": ["index.js", "lib/", "runner/", "README.md", "LICENSE"],
+  "files": ["index.js", "lib/", "runner/", "cert/", "skill/", "README.md", "LICENSE"],
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.mjs"
   },

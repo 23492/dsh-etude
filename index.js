@@ -22,7 +22,7 @@ import { createIdentityStore, IdentityError } from './lib/identity.js'
 import { checkInvocation, indexCatalog, PolicyError } from './lib/policy.js'
 import { ensureRuntime } from './lib/runtime.js'
 import { runJob } from './lib/exec.js'
-import { createEtudeSkillProvider } from './lib/skill.js'
+import { createCertSkillProvider, createEtudeSkillProvider } from './lib/skill.js'
 
 export const name = 'dsh-etude'
 // Array form: this cordis reads an object `inject` by its keys.
@@ -131,6 +131,8 @@ export function apply(ctx, config = {}) {
         }),
       'dsh-etude: skill provider',
     )
+    // Our own certification-deck workflow and kit (cert/): static files, no runtime needed.
+    skillsCtx.effect(() => skillsCtx.skills.registerProvider(() => createCertSkillProvider()), 'dsh-etude: cert skill provider')
   })
 
   function cwdOf(exec) {

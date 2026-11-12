@@ -1,0 +1,46 @@
+// Leerladder grader, body of function (answer, view, key, fields). One grader for every mode.
+const mode = key.mode;
+// Teach step: nothing to answer. Score 1 so Etude suggests Good; "known" marks "Wist ik al" (card.js rates it Easy).
+if (mode === "teach") return { score: 1, details: { known: !!(answer && answer.known) } };
+if (mode === "mc") {
+  const a = answer && typeof answer === "object" && !Array.isArray(answer) ? answer : { picked: answer };
+  const chosen = new Set(Array.isArray(a.picked) ? a.picked : a.picked == null ? [] : [a.picked]);
+  const right = new Set(key.correct);
+  let tp = 0, fp = 0;
+  for (const id of chosen) right.has(id) ? tp++ : fp++;
+  const exact = tp === right.size && fp === 0;
+  let score = exact ? 1 : view.multiple ? Math.max(0, (tp - fp) / right.size) : 0;
+  const sure = a.confidence ?? null; // 1 gok, 2 denk het, 3 zeker
+  // A lucky guess is weak evidence (only when the confidence step is switched on): cap it so Etude suggests Hard.
+  if (exact && sure === 1) score = 0.6;
+  // "Gok" on a practice question: the score stays honest, the scheduler (sfa-oefen) treats a lucky guess as a miss.
+  return { score, details: { chosen: [...chosen], confidence: sure, guess: a.guess ?? "", gok: !!a.gok } };
+}
+if (mode === "cloze") {
+  const given = Array.isArray(answer) ? answer : [];
+  const marks = key.answers.map((alts, i) => String(given[i] ?? "").trim() !== "" && alts.some((x) => x && std.looseEqual(given[i], x)));
+  return { score: marks.filter(Boolean).length / marks.length, details: { marks } };
+}
+if (mode === "typed") {
+  const ok = key.answers.some((x) => std.looseEqual(String(answer ?? ""), x));
+  return { score: ok ? 1 : 0 };
+}
+if (mode === "match") {
+  const given = answer && typeof answer === "object" ? answer : {};
+  const marks = {};
+  let right = 0;
+  for (const [l, r] of Object.entries(key.pairs)) {
+    marks[l] = given[l] === r;
+    if (marks[l]) right++;
+  }
+  return { score: right / Object.keys(key.pairs).length, details: { marks } };
+}
+if (mode === "order") {
+  const given = Array.isArray(answer) ? answer : [];
+  const pos = Object.fromEntries(key.order.map((id, i) => [id, i]));
+  const seq = given.map((id) => pos[id]).filter((p) => p !== undefined);
+  const exact = seq.length === key.order.length && seq.every((p, i) => p === i);
+  return { score: exact ? 1 : Math.min(0.9, std.lis(seq) / key.order.length) };
+}
+// free: hand over to the AI grader (hybrid type). Anything else is self-rated.
+return { defer: true };

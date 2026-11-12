@@ -1,0 +1,97 @@
+/* Leerladder: one look for every rung, built on Etude's card.css tokens. */
+#card { gap: 1rem; }
+/* No hyphenation mid-word on narrow phones; no keyboard hints on touch screens. */
+#card, #card .prose { hyphens: manual; -webkit-hyphens: manual; }
+@media (hover: none) { kbd { display: none; } }
+.sfl-q { font-size: 1.3rem; line-height: 1.4; font-weight: 500; }
+.sfl-q.q-mid { font-size: 1.15rem; }
+.sfl-q.q-long { font-size: 1.05rem; line-height: 1.5; }
+.sfl-q code { font-size: 0.8em; }
+[data-mode="result"] .sfl-q { font-size: 1.05rem; }
+.sfl-body { display: flex; flex-direction: column; gap: 0.8rem; }
+.sfl-extra:empty { display: none; }
+.sfl-extra { font-size: 0.92rem; }
+.sfl-hint { font-size: 0.85rem; }
+.sfl-commit { display: flex; flex-direction: column; gap: 0.6rem; }
+.sfl-commit.done .e-row { display: none; }
+.sfl-commit.done .sfl-guess { opacity: 0.7; }
+.sfl-conf { gap: 0.5rem; }
+.sfl-conf[hidden], .sfl-opts[hidden] { display: none; }
+
+/* options (from Etude's mcq look) */
+.e-option { gap: 14px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--card, transparent); font-size: 1.02rem; line-height: 1.45; text-align: left; }
+.e-option .body { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.e-option .e-key { width: 26px; height: 26px; border-radius: 7px; border: 1.5px solid var(--border); font: 650 13px/1 var(--font-sans); color: var(--muted-foreground); }
+.e-option[aria-pressed="true"] { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 22%, transparent); }
+.e-option.is-correct { border-color: var(--good, var(--success)) !important; background: color-mix(in oklab, var(--good, var(--success)) 9%, var(--card, transparent)) !important; }
+.e-option.is-wrong { border-color: var(--again, var(--danger)) !important; background: color-mix(in oklab, var(--again, var(--danger)) 9%, var(--card, transparent)) !important; }
+.e-option.is-missed { border-style: dashed !important; border-color: var(--good, var(--success)) !important; }
+.e-option .e-why { display: block; font-size: 0.875rem; line-height: 1.5; color: var(--muted-foreground); margin-top: 4px; }
+.e-option .e-why:empty { display: none; }
+.e-option .e-why p { margin: 0; }
+
+/* cloze */
+.sfl-cloze { font-size: 1.15rem; line-height: 1.8; }
+.blank { white-space: nowrap; }
+.blank .e-input { width: auto; min-width: 2.5em; display: inline-block; font: 400 0.82em/1.35 var(--font-sans); background: var(--accent); border: 0; border-bottom: 2px solid var(--muted-foreground); border-radius: 6px 6px 2px 2px; padding: 1px 6px; margin: 0 2px; text-align: center; box-shadow: none; }
+.blank .e-input::placeholder { color: var(--muted-foreground); opacity: 0.75; }
+.czr { display: inline; font-weight: 600; padding: 0 3px; border-radius: 5px; }
+.czr.ok { color: var(--success); background: color-mix(in oklab, var(--good, var(--success)) 12%, transparent); }
+.czr.no s { color: var(--again, var(--danger)); font-weight: 400; margin-right: 6px; }
+.czr.no b { background: var(--accent); padding: 0 3px; border-radius: 5px; }
+
+/* typed */
+.sfl-typed.e-input { font-size: 1.2rem; }
+
+/* match (Etude's look) */
+.board { display: grid; grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr); align-items: start; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.wires { width: 100%; overflow: visible; pointer-events: none; }
+.chip { padding: 0.55rem 0.75rem; align-items: center; }
+.chip .prose { font-size: 0.95rem; }
+.chip.linked { border-color: var(--wire); }
+.chip.is-selected { border-color: var(--foreground); background: var(--accent); }
+.chip.given { opacity: 0.75; border-style: dashed; }
+.chip .fix { display: block; margin-top: 0.25rem; }
+.blank .fix { display: inline; }
+@media (max-width: 520px) { .board { grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1.2fr); } }
+
+/* order (Etude's look) */
+.blocks, .solution { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.block { display: flex; align-items: flex-start; gap: 0.7rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); padding: 0.65rem 0.85rem; background: var(--card); cursor: grab; user-select: none; touch-action: none; }
+.block.given { cursor: default; border-style: dashed; opacity: 0.8; }
+.block.dragging { cursor: grabbing; z-index: 2; position: relative; border-color: var(--foreground); }
+.block .grip { color: var(--muted-foreground); letter-spacing: -0.2em; font-size: 0.85rem; }
+.block .num { flex: none; width: 1.4rem; color: var(--muted-foreground); font-size: 0.9rem; }
+.block .prose { flex: 1; font-size: 1rem; }
+.block .prose p, .solution li p { margin: 0; }
+.solution { counter-reset: s; }
+.solution li { counter-increment: s; display: flex; gap: 0.6rem; font-size: 0.95rem; color: var(--foreground); }
+.solution li::before { content: counter(s) "."; color: var(--muted-foreground); min-width: 1.4rem; }
+
+/* reveal / free */
+.sfl-answer .prose { font-size: 1.05rem; line-height: 1.6; }
+.e-reveal { border-top: 0; padding-top: 0.25rem; }
+.sfl-expl { color: var(--muted-foreground); }
+
+/* teach step: just the material, a collapsible lesson, a quiet "Wist ik al" */
+.sfa-teach[hidden] { display: none; }
+#card.sfa-teaching > :not(.sfa-teach) { display: none !important; }
+.sfa-teach { display: flex; flex-direction: column; gap: 1rem; }
+.sfa-body { font-size: 1.05rem; line-height: 1.6; }
+.sfa-body p { margin: 0 0 0.7em; }
+.sfa-lesson { border-left: 3px solid color-mix(in oklab, var(--primary) 55%, var(--border)); padding: 0.1rem 0 0.1rem 0.9rem; }
+.sfa-lesson summary { cursor: pointer; font-weight: 600; font-size: 0.95rem; color: var(--muted-foreground); list-style-position: outside; }
+.sfa-lesson[open] summary { margin-bottom: 0.5rem; }
+.sfa-lesson .prose { font-size: 0.98rem; line-height: 1.6; }
+.sfa-opts { display: flex; flex-direction: column; gap: 0.6rem; }
+.sfa-opt { border-left: 3px solid var(--border); padding: 0.15rem 0 0.15rem 0.8rem; }
+.sfa-opt .prose { font-size: 0.98rem; line-height: 1.5; color: var(--muted-foreground); }
+.sfa-opt .prose strong { color: var(--foreground); font-weight: 600; }
+.sfa-opt.ok { border-left-color: var(--good, var(--success)); }
+.sfa-opt.ok .prose { color: var(--foreground); }
+.sfa-opt.ok .prose strong { color: var(--good, var(--success)); }
+.sfa-after { font-size: 0.98rem; line-height: 1.6; color: var(--muted-foreground); }
+.sfa-known { align-self: flex-end; background: none; border: 1px solid var(--border); border-radius: 999px; padding: 0.4rem 0.9rem; font: inherit; font-size: 0.85rem; color: var(--muted-foreground); cursor: pointer; }
+.sfa-gok { display: block; margin: 0 0 0.6rem auto; }
+.sfa-gok[aria-pressed="true"] { color: var(--foreground); border-color: var(--foreground); background: var(--muted); }

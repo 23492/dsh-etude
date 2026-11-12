@@ -26,6 +26,14 @@ Design and the reasons behind it: [PLAN.md](PLAN.md).
 
 The plugin serves Etude's own agent skill as the DSH skill `etude`, so the agent loads it when the user talks about flashcards, studying or being quizzed. It comes from the same pinned, hash-checked Etude tarball as the CLI (`skill/SKILL.md` and `skill/references/`, plus `docs/` without screenshots for the pages the skill links to), and its text stays exactly as released. A short DSH preface ([skill/dsh.md](skill/dsh.md)) goes in front when the skill loads: use the `etude` tool with an argv array, no `--db`, sign-in and Sync belong to the plugin, nothing irreversible, and the AI grading rule that matches the config. An Etude bump therefore replaces the skill without any merge. On a profile without a skill registry the tool still works.
 
+## The certification skill
+
+A second skill, `etude-cert` ([cert/SKILL.md](cert/SKILL.md)), turns an exam guide, question banks and the learner's own material into an Etude deck for a multiple-choice certification: concept cards that teach first and climb a ladder of forms, practice questions released once their concepts are learned, and two sealed mock exams that decide when to book. It ships in this repo (not in the Etude tarball), so Etude updates leave it alone.
+
+- `cert/references/`: the design and its evidence, and one spec per stage that a subagent follows (sources, concept cards, lessons, ladder content, option-length balance, bank analysis, repair, planner).
+- `cert/kit/`: the deterministic part. `build_pack.py <project>` builds the pack from a project's `cert.json` and stage outputs; `stage.py` makes stage inputs, picks the mock exams, measures the length cue and validates outputs; `verify_types.mjs` runs every card type over every item and learner state; `sim.cjs` simulates the workload with Etude's FSRS; `planner/` is the Cloudflare Worker that releases practice questions and brings concepts back after a miss (needs the self-hosted Sync from etude-cloudflare).
+- Built and tested on the Salesforce Platform Administrator deck (962 concept cards, 352 practice questions, 2 x 60 mock questions); its settings are `cert/kit/example.cert.json`. Rebuilding that deck with the kit gives the same items and decks as before.
+
 ## Requirements
 
 - DSH with the `connection/request` waterfall (`@deepseek-ai/dsh-client-connection` 0.2.x). Node 22.5 or newer for the plugin itself.

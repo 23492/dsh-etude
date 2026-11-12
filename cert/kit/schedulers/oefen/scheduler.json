@@ -1,0 +1,30 @@
+{
+  "id": "__PREFIX__-oefen",
+  "name": "Oefenvraag",
+  "description": "Exam-style practice question, answered without help. Right the first time: done, it does not come back. Wrong, or right but marked as a guess: back once after a few days (the planner Worker brings the concept cards behind it back right away). After that it is done either way. Never drilled.",
+  "ratings": false,
+  "options": [
+    {
+      "name": "againDays",
+      "kind": "number",
+      "label": "After a miss, back after",
+      "default": 4,
+      "min": 1,
+      "max": 60,
+      "suffix": "days"
+    },
+    {
+      "name": "maxTries",
+      "kind": "number",
+      "label": "At most",
+      "default": 2,
+      "min": 1,
+      "max": 5,
+      "suffix": "tries"
+    }
+  ],
+  "stats": {
+    "groupBy": "last",
+    "label": "Laatste uitslag"
+  }
+}

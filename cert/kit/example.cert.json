@@ -1,0 +1,130 @@
+{
+  "name": "SF Platform Admin",
+  "exam": {
+    "title": "Salesforce Certified Platform Administrator (Plat-Admn-201)",
+    "questions": 60,
+    "minutes": 105,
+    "passMark": 0.68,
+    "bookAt": 0.75,
+    "cardLanguage": "English",
+    "learnerLanguage": "Dutch",
+    "notes": "Flow is the automation answer; Workflow Rules and Process Builder are retired (end of support 31 Dec 2025)."
+  },
+  "ids": {
+    "items": "sfa",
+    "types": "sfl",
+    "schedulers": "sfa",
+    "preset": "sfa-exam",
+    "tags": "sfa"
+  },
+  "paths": {
+    "questions": "questions.json",
+    "pack": "deck.pack.json"
+  },
+  "domains": [
+    {
+      "id": "01",
+      "name": "Configuration and Setup",
+      "weight": 15,
+      "video": "[(1/7) Configuration & Setup](https://www.youtube.com/watch?v=451E-WPC4F8), 33 min"
+    },
+    {
+      "id": "02",
+      "name": "Object Manager and Lightning App Builder",
+      "weight": 15,
+      "video": "[(2/7) Object Manager & Lightning App Builder](https://www.youtube.com/watch?v=803JEXb4IGs), 30 min"
+    },
+    {
+      "id": "06",
+      "name": "Data and Analytics Management",
+      "weight": 17,
+      "video": "[(6/7) Data & Analytics Management](https://www.youtube.com/watch?v=gs-tergOMK4), 44 min"
+    },
+    {
+      "id": "07",
+      "name": "Automation",
+      "weight": 15,
+      "video": "[(7/7) Workflow/Process Automation](https://www.youtube.com/watch?v=qGOgnzNuhWI), 41 min (Workflow Rules en Process Builder zijn achterhaald: Flow is het antwoord)"
+    },
+    {
+      "id": "03",
+      "name": "Sales and Marketing Applications",
+      "weight": 10,
+      "video": "[(3/7) Sales & Marketing Applications](https://www.youtube.com/watch?v=psJF6ibjgcE), 39 min"
+    },
+    {
+      "id": "04",
+      "name": "Service and Support Applications",
+      "weight": 10,
+      "video": "[(4/7) Service & Support Applications](https://www.youtube.com/watch?v=w-f2aGD1NC0), 28 min"
+    },
+    {
+      "id": "05",
+      "name": "Productivity and Collaboration",
+      "weight": 10,
+      "video": "[(5/7) Productivity & Collaboration](https://www.youtube.com/watch?v=H916irqDlvg), 29 min"
+    },
+    {
+      "id": "08",
+      "name": "Agentforce",
+      "weight": 8,
+      "video": "[New Agentforce Builder](https://www.youtube.com/watch?v=1GVaVSGNBRE), [Service Agent User Permissions](https://www.youtube.com/watch?v=4tEIOdXRtDo), [Agentforce Testing Center](https://www.youtube.com/watch?v=4kBCwUfEkww)"
+    }
+  ],
+  "mocks": {
+    "count": 2,
+    "size": 60,
+    "seed": 201
+  },
+  "preset": {
+    "name": "SF Admin examen",
+    "config": {
+      "desiredRetention": 0.9,
+      "newPerDay": 48,
+      "newPerFace": {
+        "herken": 17,
+        "produceer": 17,
+        "onthoud": 2,
+        "oefen": 12
+      },
+      "reviewsPerDay": 300,
+      "newOrder": "added",
+      "newMix": "mix",
+      "learningSteps": [
+        "1m",
+        "10m"
+      ],
+      "adaptiveChallenge": true
+    }
+  },
+  "practice": {
+    "againDays": 4,
+    "maxTries": 2,
+    "releaseDays": 3
+  },
+  "text": {
+    "packDescription": "Salesforce Certified Platform Administrator, gebouwd uit vragen/vragen.json.",
+    "deckDescription": "Salesforce Certified Platform Administrator (Plat-Admn-201). 60 vragen, 105 minuten, slagen bij 68%. Per domein eerst de video, dan dit deck.\n\nElk begrip gaat langs een ladder: **eerst uitleg** (bij het eerste begrip van een onderwerp met een korte les), dan **herkennen** (meerkeuze), dan **zelf invullen** (met een hint zolang je de kaart nog leert). Elke stap is een eigen kaart met een eigen planning.\n\n**Oefenvragen** (examenvragen) komen vanzelf in je sessie, een paar dagen nadat de begrippen erachter geleerd zijn, door elkaar uit alle onderwerpen. Geen uitleg vooraf, geen beoordelingsknoppen. Goed: klaar. Fout of \"Ik gok\": de begrippen erachter komen terug en de vraag nog een keer na een paar dagen.\n\n**Proefexamens** (2 x 60 vragen) staan verzegeld apart. Daar haal je je gereedheid uit: boeken bij 75% of meer.",
+    "deckInstructions": "The learner is preparing for the Salesforce Platform Administrator certification exam. Grade on whether the answer contains the decision or fact the exam tests; wording, order and spelling do not matter. Accept Salesforce feature names in any reasonable form. Partially correct when the key decision is right but an essential condition from the rubric is missing. Feedback in Dutch, short, naming the one thing to remember.",
+    "domainDescription": "Examengewicht {weight}%, ongeveer {expected} van de {questions} vragen. Kijk eerst: {video}. Spiekbrief: de notitie met dezelfde naam.",
+    "mockDescription": "Verzegeld proefexamen {n}: {size} vragen naar examengewicht, {minutes} minuten. {when}. Starten via de knop Practice ahead (of de link in het studieplan); elke vraag telt een keer. Slagen bij {pass}%, boeken bij {book}% of meer.",
+    "mockWhen": [
+      "Halverwege",
+      "Een week voor het examen"
+    ],
+    "mockDeck": "Proefexamen {n}"
+  },
+  "_comment": "The Salesforce Platform Administrator deck (Nov 2026). Copy, then change everything: ids must be new and unique per deck.",
+  "ui": {
+    "lesson": "Les",
+    "known": "Wist ik al",
+    "guess": "Ik gok",
+    "options": "Opties",
+    "pickAll": "Kies alle juiste.",
+    "rightOrder": "Goede volgorde"
+  },
+  "lessonWords": [
+    150,
+    280
+  ]
+}

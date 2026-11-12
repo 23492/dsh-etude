@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as plugin from '../index.js'
 import { MANIFEST } from '../lib/manifest.js'
-import { loadEtudeSkill, parseFrontmatter } from '../lib/skill.js'
+import { createCertSkillProvider, loadCertSkill, loadEtudeSkill, parseFrontmatter } from '../lib/skill.js'
 import { createFakeCtx } from './support/fake-ctx.mjs'
 
 const ETUDE_REF = fileURLToPath(new URL('../../etude-cloudflare/etude.ref', import.meta.url))
@@ -74,7 +74,8 @@ test('the plugin registers the etude skill provider, and it lists and loads the 
     nodePath: nodeStub,
     etudeRoot: root,
   })
-  assert.equal(providers.length, 1)
+  assert.equal(providers.length, 2, 'etude and etude-cert')
+  assert.equal(providers[1].name, 'dsh-etude-cert')
   const provider = providers[0]
   assert.equal(provider.name, 'dsh-etude')
   const listed = await provider.list({})
@@ -98,4 +99,30 @@ test('the downloaded skill matches etude.ref and keeps its references', { skip: 
   assert.equal(skill.name, 'etude')
   for (const ref of ['authoring.md', 'scheduling.md', 'types.md']) assert.ok(existsSync(join(ROOT, 'skill', 'references', ref)), ref)
   assert.ok(skill.content.includes(readFileSync(join(ROOT, 'skill', 'SKILL.md'), 'utf8').split('\n---\n').slice(1).join('\n---\n').trim()))
+})
+
+test('etude-cert: the skill loads from cert/, names its kit, and every file it points at exists', async () => {
+  const skill = loadCertSkill()
+  assert.equal(skill.name, 'etude-cert')
+  assert.match(skill.description, /certification/)
+  assert.equal(skill.invocation.modelInvocable, true)
+  const dir = skill.resourceBase.path
+  assert.ok(skill.content.includes(join(dir, 'kit')), 'the body names the kit path')
+  assert.doesNotMatch(skill.content, /^---/, 'frontmatter stripped')
+  for (const [, rel] of skill.content.matchAll(/\]\((references\/[\w.-]+\.md)\)/g)) assert.ok(existsSync(join(dir, rel)), rel)
+  for (const f of ['build_pack.py', 'stage.py', 'verify_types.mjs', 'sim.cjs', 'example.cert.json', 'types/build.py', 'types/card.js', 'types/prepare.js', 'types/grade.js', 'schedulers/oefen/schedule.js', 'schedulers/toets/schedule.js', 'planner/src/worker.js', 'planner/seed.mjs', 'planner/test/synthetic.mjs'])
+    assert.ok(existsSync(join(dir, 'kit', f)), f)
+  const provider = createCertSkillProvider()
+  const [c] = await provider.list({})
+  assert.equal(c.name, 'etude-cert')
+  assert.equal('content' in c, false)
+  assert.match((await provider.get(c, {})).content, /Certification deck for Etude/)
+})
+
+test('etude-cert: no em or en dashes in the skill text', () => {
+  const dir = loadCertSkill().resourceBase.path
+  for (const f of ['SKILL.md', ...['design', 'sources', 'concepts', 'lessons', 'ladder', 'balance', 'analysis', 'repair', 'planner'].map((n) => `references/${n}.md`)]) {
+    const t = readFileSync(join(dir, f), 'utf8')
+    assert.doesNotMatch(t, /[\u2013\u2014]/, `${f}: dash`)
+  }
 })
