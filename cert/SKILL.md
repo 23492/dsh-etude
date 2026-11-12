@@ -15,7 +15,17 @@ Why each rule exists, with the evidence: [references/design.md](references/desig
 
 The kit in `kit/` does the deterministic work (card types, schedulers, pack builder, stage inputs, measurements, validation, workload simulation, the planner that etude-cloudflare runs). Subagents do the judgment work, one per exam domain, from the specs in `references/`. The tested example is the Salesforce Platform Administrator deck: its `cert.json` is in `kit/example.cert.json`.
 
-Everything below uses the `etude` tool (DSH) for the collection. `<kit>` is this skill's `kit/` folder (the skill's base directory + `/kit`); `<project>` is the learner's project folder.
+`<kit>` is this skill's `kit/` folder (the skill's base directory + `/kit`); `<project>` is the learner's project folder. The kit needs Python 3; `verify_types.mjs`, `sim.cjs` and the planner tests need Node 22.5 or newer (skip them when there is no Node, and say so).
+
+## Reaching the learner's collection
+
+Use whichever of these the environment has, in this order:
+
+1. **An `etude` tool** (DSH, or any agent with the Etude plugin): every `etude <group> <verb> ...` below is one tool call with the words after `etude` as the argument list.
+2. **The `etude` CLI** on the machine (Etude desktop app, or a checkout of github.com/Zibhelina/etude with `npm install`): run the commands in a shell.
+3. **Neither** (Claude Desktop, claude.ai, any chat with code execution): build the pack file here and hand it to the learner as a download. They import it in the Etude app: Settings → Data → **Import packs** (or the import button on the Decks page). Importing the same pack again updates it and keeps their review history. Skip the CLI-only checks in stage 9 and ask the learner to open one card of each kind instead.
+
+On a self-hosted etude-cloudflare server the planner and the AI house style run on the server, so nothing else has to be set up for the learner.
 
 ## 0. Agree the plan with the learner
 
@@ -96,9 +106,9 @@ Pick `newPerDay` and `newPerFace` from the simulation (SF: 48 a day, at most 12 
 
 ## 9. Import
 
-1. `etude db backup`, then `["pack","check","<pack>"]`, `["pack","import","<pack>","--dry-run"]`, then import.
+1. With the CLI or tool: `etude db backup`, `etude pack check <pack>`, `etude pack import <pack> --dry-run`, then import. Without: give the learner the pack file to import in the app (see above).
 2. Spot-check in the collection: `study card <id>` on a first rung (teach view), a second rung (hints), a practice question (guess button, no teach), then `card bury` anything you submitted. `stats skills <deck>` lists the rungs.
-3. Set the AI feedback style on the top deck (`deck instructions`): the learner's language, answer first, vendor jargon exactly as on the card, no dashes, no praise. Optionally Minimi's personality the same way (see the worked example's `etude/minimi/`).
+3. Set the AI feedback instructions on the top deck (cert.json `text.deckInstructions`, written into the pack): the learner's language, answer first, vendor jargon exactly as on the card. On an etude-cloudflare server the proxy adds the rest of the house style (no dashes, no praise, no filler) to every AI answer.
 4. Have the learner open a few cards on the phone before you call it done.
 
 ## 10. Planner
