@@ -110,7 +110,7 @@ test('etude-cert: the skill loads from cert/, names its kit, and every file it p
   assert.ok(skill.content.includes(join(dir, 'kit')), 'the body names the kit path')
   assert.doesNotMatch(skill.content, /^---/, 'frontmatter stripped')
   for (const [, rel] of skill.content.matchAll(/\]\((references\/[\w.-]+\.md)\)/g)) assert.ok(existsSync(join(dir, rel)), rel)
-  for (const f of ['build_pack.py', 'stage.py', 'verify_types.mjs', 'sim.cjs', 'example.cert.json', 'types/build.py', 'types/card.js', 'types/prepare.js', 'types/grade.js', 'schedulers/oefen/schedule.js', 'schedulers/toets/schedule.js', 'planner/src/worker.js', 'planner/seed.mjs', 'planner/test/synthetic.mjs'])
+  for (const f of ['build_pack.py', 'stage.py', 'verify_types.mjs', 'sim.cjs', 'example.cert.json', 'types/build.py', 'types/card.js', 'types/prepare.js', 'types/grade.js', 'schedulers/oefen/schedule.js', 'schedulers/toets/schedule.js', 'planner/src/planner.js', 'planner/seed.mjs', 'planner/test/planner.test.mjs'])
     assert.ok(existsSync(join(dir, 'kit', f)), f)
   const provider = createCertSkillProvider()
   const [c] = await provider.list({})

@@ -1,1 +1,8 @@
-{ "name": "cert-planner", "private": true, "type": "module" }
+{
+ "name": "cert-planner",
+ "private": true,
+ "type": "module",
+ "scripts": {
+  "test": "node test/planner.test.mjs"
+ }
+}

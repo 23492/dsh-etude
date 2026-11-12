@@ -1,7 +1,7 @@
 {
   "id": "__PREFIX__-oefen",
   "name": "Oefenvraag",
-  "description": "Exam-style practice question, answered without help. Right the first time: done, it does not come back. Wrong, or right but marked as a guess: back once after a few days (the planner Worker brings the concept cards behind it back right away). After that it is done either way. Never drilled.",
+  "description": "Exam-style practice question, answered without help. Right the first time: done, it does not come back. Wrong, or right but marked as a guess: back once after a few days (the planner on the Sync server brings the concept cards behind it back right away, and releases the question releaseDays after those concepts are learned). After that it is done either way. Never drilled.",
   "ratings": false,
   "options": [
     {
@@ -21,6 +21,15 @@
       "min": 1,
       "max": 5,
       "suffix": "tries"
+    },
+    {
+      "name": "releaseDays",
+      "kind": "number",
+      "label": "Released after its concepts are learned, after",
+      "default": 3,
+      "min": 0,
+      "max": 30,
+      "suffix": "days"
     }
   ],
   "stats": {

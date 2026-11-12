@@ -13,7 +13,7 @@ A certification deck has three parts, each with its own job:
 
 Why each rule exists, with the evidence: [references/design.md](references/design.md). Read it before changing a rule.
 
-The kit in `kit/` does the deterministic work (card types, schedulers, pack builder, stage inputs, measurements, validation, workload simulation, the planner Worker). Subagents do the judgment work, one per exam domain, from the specs in `references/`. The tested example is the Salesforce Platform Administrator deck: its `cert.json` is in `kit/example.cert.json`.
+The kit in `kit/` does the deterministic work (card types, schedulers, pack builder, stage inputs, measurements, validation, workload simulation, the planner that etude-cloudflare runs). Subagents do the judgment work, one per exam domain, from the specs in `references/`. The tested example is the Salesforce Platform Administrator deck: its `cert.json` is in `kit/example.cert.json`.
 
 Everything below uses the `etude` tool (DSH) for the collection. `<kit>` is this skill's `kit/` folder (the skill's base directory + `/kit`); `<project>` is the learner's project folder.
 
@@ -25,7 +25,7 @@ Ask (one round, with options):
 - Sources: official guide and samples, community banks (which), their own material (videos, course, book, PDF).
 - Card language (the exam's) and the learner's language (lessons, intros, feedback).
 - Minutes a day, so `newPerDay` fits (stage 9).
-- Whether the self-hosted Sync with the planner Worker is available (see references/planner.md); without it, practice questions arrive in pack order and you release them by hand.
+- Whether they use a self-hosted etude-cloudflare Sync server (the planner runs there; see references/planner.md); without it, practice questions arrive in pack order and you release them by hand.
 
 ## 1. Project and cert.json
 
@@ -103,7 +103,7 @@ Pick `newPerDay` and `newPerFace` from the simulation (SF: 48 a day, at most 12 
 
 ## 10. Planner
 
-With the self-hosted Sync: deploy `kit/planner` for this deck and seed it ([references/planner.md](references/planner.md)). Check `/status`: `locked` equals the number of practice questions. Run `node <kit>/planner/test/synthetic.mjs` first if the kit or Etude changed.
+On a self-hosted etude-cloudflare server the planner already runs for every account and every deck with practice questions; nothing to deploy ([references/planner.md](references/planner.md)). After the import, check `GET /admin/planner`: this person's `counts.locked` should reach the number of practice questions once the planner has caught up (seed the account to skip the wait). Run `node <kit>/planner/test/planner.test.mjs` if the kit or Etude changed.
 
 ## 11. Study plan
 
