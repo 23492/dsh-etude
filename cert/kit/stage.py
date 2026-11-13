@@ -11,6 +11,8 @@ Usage: python3 stage.py <command> <project-dir> [args]
   repair-in            parts + analysis + holdout -> repair/in/DD.json for references/repair.md
   decoys-in            built pack -> decoys/in/DD.json (fill-in and typed items: the word-bank rung needs tricky
                        wrong blocks, references/decoys.md)
+  gaps-in              built pack -> gaps/in/DD.json (word-bank sentences with 2+ gaps: every block must fit one
+                       gap only, references/decoys.md "One block, one gap")
   measure              length-cue report over every MCQ the pack will contain (target: correct strictly
                        longest <= 30%, median correct/wrong ratio 0.9 to 1.1)
   check <stage>        validate the outputs of ladder|balance|repair|lessons|parts
@@ -194,12 +196,34 @@ elif CMD == "decoys-in":
         elif it["type"] == f"{T}-typed":
             entry = {"id": it["id"], "sentence": f["prompt"] + " {{" + "|".join(f["answers"]) + "}}", "blanks": [f["answers"]], "context": f.get("explanation", "")}
         else: continue
-        if "--all" not in ARGS and it["id"] in done: continue
+        # A decoy that also stands as plain words in the sentence is ruled out at a glance: redo those too.
+        plain = rx.sub(" ", entry["sentence"]).lower()
+        seen = [d for d in f.get("decoys", []) if re.search(r"(?<!\w)" + re.escape(str(d).lower()) + r"(?!\w)", plain)]
+        if "--all" not in ARGS and it["id"] in done and not seen: continue
+        if seen: entry["redo"] = f"these decoys stand as plain words in the sentence: {seen}"
         m = re.match(rf"{re.escape(P)}\.d(\w+?)\.", it["id"])
         per[m.group(1) if m else "xx"].append({**entry, "topic": it["deck"].split("::")[-1]})
     for dd in DOMS:
         dump(per.get(dd, []), os.path.join(ROOT, "decoys", "in", f"{dd}.json"))
         print(dd, len(per.get(dd, [])), "items need decoys")
+
+elif CMD == "gaps-in":
+    pk = load(os.path.join(ROOT, C["paths"].get("pack", "deck.pack.json")))
+    if not pk: raise SystemExit("build the pack first")
+    T = C.get("ids", {}).get("types", "cl")
+    rx = re.compile(r"\{\{([\s\S]+?)\}\}")
+    done = {}
+    for fp in glob.glob(os.path.join(ROOT, "gaps", "out", "*.json")): done.update(load(fp))
+    per = collections.defaultdict(list)
+    for it in pk["items"]:
+        f = it["fields"]
+        if it.get("archived") or it["type"] not in (f"{T}-begrip", f"{T}-cloze") or len(rx.findall(f.get("text") or "")) < 2: continue
+        if "--all" not in ARGS and it["id"] in done: continue
+        m = re.match(rf"{re.escape(P)}\.d(\w+?)\.", it["id"])
+        per[m.group(1) if m else "xx"].append({"id": it["id"], "question": f.get("front", ""), "answer": f.get("back") or f.get("explanation", ""), "text": f["text"], "decoys": f.get("decoys", [])})
+    for dd in DOMS:
+        dump(per.get(dd, []), os.path.join(ROOT, "gaps", "in", f"{dd}.json"))
+        print(dd, len(per.get(dd, [])), "multi-gap sentences")
 
 elif CMD == "measure":
     lad, bal, rep = {}, {}, {}
@@ -316,9 +340,29 @@ elif CMD == "check":
                 if not 4 <= len(d) <= 8: bad.append(f"{x['id']}: needs 4 to 8 decoys, has {len(d)}")
                 if len({low(a) for a in d}) != len(d): bad.append(f"{x['id']}: duplicate decoy")
                 if any(low(a) in rights for a in d): bad.append(f"{x['id']}: decoy equals a right answer")
+                plain = re.sub(r"\{\{[\s\S]+?\}\}", " ", x["sentence"]).lower()
+                if any(re.search(r"(?<!\w)" + re.escape(low(a)) + r"(?!\w)", plain) for a in d): bad.append(f"{x['id']}: decoy stands as plain words in the sentence")
                 if dash(json.dumps(d, ensure_ascii=False)): bad.append(f"{x['id']}: dash")
+    elif stage == "gaps":
+        low = lambda x: re.sub(r"\s+", " ", str(x).strip().lower())
+        rx = re.compile(r"\{\{([\s\S]+?)\}\}")
+        for dd in DOMS:
+            want = {x["id"]: x for x in load(os.path.join(ROOT, "gaps", "in", f"{dd}.json"), [])}
+            out = load(os.path.join(ROOT, "gaps", "out", f"{dd}.json"), {})
+            # Only failing sentences get an entry; one that is not in the input is stale.
+            for i in out:
+                if want and i not in want: bad.append(f"{i}: not a multi-gap sentence in gaps/in")
+            for i, x in out.items():
+                t = x.get("text", "")
+                gaps = rx.findall(t)
+                if not 1 <= len(gaps) <= 3: bad.append(f"{i}: text needs 1 to 3 gaps")
+                rights = {low(a) for g in gaps for a in g.split("::")[0].split("|")}
+                d = x.get("decoys", [])
+                if not 4 <= len(d) <= 8: bad.append(f"{i}: needs 4 to 8 decoys")
+                if any(low(a) in rights for a in d): bad.append(f"{i}: decoy equals a right answer")
+                if dash(json.dumps(x, ensure_ascii=False)): bad.append(f"{i}: dash")
     else:
-        raise SystemExit("check what? parts | ladder | balance | repair | lessons | decoys")
+        raise SystemExit("check what? parts | ladder | balance | repair | lessons | decoys | gaps")
     print("\n".join(bad) if bad else f"{stage}: OK")
     sys.exit(1 if bad else 0)
 else:

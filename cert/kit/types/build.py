@@ -128,7 +128,7 @@ def ladder_item(item, ladder_content, prefix="sfl"):
     lc = ladder_content or {}
     if lc.get("recognize"):
         f["rec"] = lc["recognize"]
-    if kind == "begrip" and lc.get("text"):
+    if kind in ("begrip", "cloze") and lc.get("text"):
         f["text"] = lc["text"]
     if lc.get("decoys"):
         f["decoys"] = lc["decoys"]
