@@ -7,7 +7,7 @@ description: Build an Etude study deck for a multiple-choice certification exam 
 
 A certification deck has three parts, each with its own job:
 
-- **Concept cards** teach the facts and decisions the exam tests. Each is taught first (one tap) and then climbs a ladder of forms: recognise (multiple choice), then produce (drag blocks from a word bank into the gaps, match, order; never typing). Every block fits exactly one gap. While learning the bank holds the right blocks, topped up to three with the hardest wrong ones; in review more tricky wrong blocks join it as the card matures.
+- **Concept cards** teach the facts and decisions the exam tests. Each is taught first (one tap) and then climbs a ladder of forms: recognise (multiple choice), then produce (drag blocks from a word bank into the gaps, match, order; never typing). Blocks of gaps that could trade places (a list, "X and Y") count in either gap. While learning the bank holds only the right blocks; in review tricky wrong blocks join it, more as the card matures.
 - **Practice questions** are the exam-style questions. They are never drilled: one clean try, released a few days after the concepts behind them are learned, mixed across topics. A miss or a guess brings those concept cards back and the question once more after 4 days.
 - **Two sealed mock exams**, weighted like the blueprint, seen nowhere else. Readiness comes only from them: book at 75% or more.
 
@@ -105,7 +105,7 @@ node <kit>/sim.cjs <project>/deck.pack.json <project>/teaches.json 42 <newPerDay
 
 Wrong blocks for the word bank: one subagent per domain with [references/decoys.md](references/decoys.md) (Sonnet-class, tell it to reread every item for decoys that would also be true), then `stage.py check <project> decoys` and build again. Spot-check items a subagent flags: a decoy that is also right marks a right answer wrong.
 
-One block, one gap: `stage.py gaps-in <project>` lists every sentence with 2 or more gaps; one subagent per domain rewrites the ones whose right blocks could swap (same spec, section "One block, one gap"), then `check gaps` and build again. Run `decoys-in` once more afterwards: it also catches decoys that stand as plain words in the sentence.
+Gaps that may swap: `stage.py gaps-in <project>` lists every sentence with 2 or more gaps; one subagent per domain marks which gaps may trade their blocks (same spec, section "Gaps that may swap"), then `check gaps` and build again. `decoys-in` also catches decoys that stand as plain words in the sentence.
 
 Pick `newPerDay` and `newPerFace` from the simulation (SF: 48 a day, at most 12 practice; 47 min in week 1, 70 at the peak, every concept seen by day 30). Write them into `cert.json` `preset` and build again.
 

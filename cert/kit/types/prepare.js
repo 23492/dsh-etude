@@ -110,20 +110,23 @@ function dropGiveaways(prompt, text) {
 // Produce without typing: drag blocks from a word bank into the gaps. While learning the bank holds only the
 // right blocks; once the card is in review, tricky wrong blocks (fields.decoys, hardest first) join it, more as
 // the memory matures. Grading is unchanged: the answer is the block text placed in each gap.
-// Wrong blocks shown: while learning only enough to make a bank of 3 (a one-gap sentence with one block tests
-// nothing); in review 2 more under 7 days stability, 4 under 30, then all.
-const decoyCount = (gaps) => {
+// Wrong blocks shown: none while learning (only the right blocks); in review 2 under 7 days stability,
+// 4 under 30, then all.
+const decoyCount = () => {
   const pool = Array.isArray(fields.decoys) ? fields.decoys.length : 0;
   if (!pool) return 0;
-  const fill = Math.max(0, 3 - gaps);
-  if (!L) return Math.min(pool, fill + 2);
-  if (teaching || known === 0 || state === "new" || state === "learning" || state === "relearning") return Math.min(pool, fill);
+  if (!L) return Math.min(3, pool);
+  if (teaching || known === 0 || state === "new" || state === "learning" || state === "relearning") return 0;
   const s = Number(L.card.stability) || 0;
-  return Math.min(pool, fill + (s < 7 ? 2 : s < 30 ? 4 : pool));
+  return Math.min(pool, s < 7 ? 2 : s < 30 ? 4 : pool);
 };
+// Gaps whose right blocks may trade places (fields.swap: [[0, 1], ...], gap indexes in sentence order).
+const swapGroups = (n) => (Array.isArray(fields.swap) ? fields.swap : [])
+  .map((g) => (Array.isArray(g) ? g.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < n) : []))
+  .filter((g) => g.length > 1);
 function bank(prompt, text, explanation, reveal) {
   const { shown, blanks } = blanksOf(text, false);
-  const n = decoyCount(blanks.length);
+  const n = decoyCount();
   const right = blanks.map((b) => String(b.answers[0]));
   const low = (x) => String(x).trim().toLowerCase();
   const taken = new Set(blanks.flatMap((b) => b.answers.map(low)));
@@ -131,7 +134,7 @@ function bank(prompt, text, explanation, reveal) {
   const chips = rng.shuffle([...right, ...wrong]).map((t, i) => ({ id: "b" + i, text: t }));
   return {
     view: { mode: "bank", prompt: prompt ?? "", text: shown, blanks: blanks.map((b, i) => ({ id: i })), bank: chips, level: n },
-    key: { mode: "cloze", answers: blanks.map((b) => b.answers), explanation: explanation ?? "", reveal: reveal ?? "" },
+    key: { mode: "cloze", answers: blanks.map((b) => b.answers), groups: swapGroups(blanks.length), explanation: explanation ?? "", reveal: reveal ?? "" },
   };
 }
 // Every gap stays a gap: with a word bank the learner places all the right blocks (dropGiveaways was for typing).

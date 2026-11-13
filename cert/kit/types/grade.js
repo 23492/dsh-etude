@@ -18,8 +18,23 @@ if (mode === "mc") {
 }
 if (mode === "cloze") {
   const given = Array.isArray(answer) ? answer : [];
-  const marks = key.answers.map((alts, i) => String(given[i] ?? "").trim() !== "" && alts.some((x) => x && std.looseEqual(given[i], x)));
-  return { score: marks.filter(Boolean).length / marks.length, details: { marks } };
+  const fits = (v, i) => String(v ?? "").trim() !== "" && key.answers[i].some((x) => x && std.looseEqual(v, x));
+  const marks = key.answers.map((_, i) => fits(given[i], i));
+  // fix[i]: the answer to show for gap i. In a swap group a block may sit in any of the group's gaps: take the
+  // assignment of the group's answers to its gaps that gets the most gaps right.
+  const fix = key.answers.map((alts) => alts[0]);
+  for (const grp of key.groups ?? []) {
+    let best = null;
+    const perms = (a) => (a.length <= 1 ? [a] : a.flatMap((x, k) => perms([...a.slice(0, k), ...a.slice(k + 1)]).map((p) => [x, ...p])));
+    for (const p of perms(grp)) {
+      // p[j] = whose answers gap grp[j] takes
+      const ok = grp.map((gi, j) => fits(given[gi], p[j]));
+      const n = ok.filter(Boolean).length;
+      if (!best || n > best.n) best = { n, p, ok };
+    }
+    grp.forEach((gi, j) => { marks[gi] = best.ok[j]; fix[gi] = key.answers[best.p[j]][0]; });
+  }
+  return { score: marks.filter(Boolean).length / marks.length, details: { marks, fix } };
 }
 if (mode === "typed") {
   const ok = key.answers.some((x) => std.looseEqual(String(answer ?? ""), x));

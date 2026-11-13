@@ -11,8 +11,8 @@ Usage: python3 stage.py <command> <project-dir> [args]
   repair-in            parts + analysis + holdout -> repair/in/DD.json for references/repair.md
   decoys-in            built pack -> decoys/in/DD.json (fill-in and typed items: the word-bank rung needs tricky
                        wrong blocks, references/decoys.md)
-  gaps-in              built pack -> gaps/in/DD.json (word-bank sentences with 2+ gaps: every block must fit one
-                       gap only, references/decoys.md "One block, one gap")
+  gaps-in              built pack -> gaps/in/DD.json (word-bank sentences with 2+ gaps: which gaps may trade
+                       their blocks, references/decoys.md "Gaps that may swap")
   measure              length-cue report over every MCQ the pack will contain (target: correct strictly
                        longest <= 30%, median correct/wrong ratio 0.9 to 1.1)
   check <stage>        validate the outputs of ladder|balance|repair|lessons|parts
@@ -344,23 +344,20 @@ elif CMD == "check":
                 if any(re.search(r"(?<!\w)" + re.escape(low(a)) + r"(?!\w)", plain) for a in d): bad.append(f"{x['id']}: decoy stands as plain words in the sentence")
                 if dash(json.dumps(d, ensure_ascii=False)): bad.append(f"{x['id']}: dash")
     elif stage == "gaps":
-        low = lambda x: re.sub(r"\s+", " ", str(x).strip().lower())
         rx = re.compile(r"\{\{([\s\S]+?)\}\}")
         for dd in DOMS:
             want = {x["id"]: x for x in load(os.path.join(ROOT, "gaps", "in", f"{dd}.json"), [])}
             out = load(os.path.join(ROOT, "gaps", "out", f"{dd}.json"), {})
-            # Only failing sentences get an entry; one that is not in the input is stale.
-            for i in out:
-                if want and i not in want: bad.append(f"{i}: not a multi-gap sentence in gaps/in")
             for i, x in out.items():
-                t = x.get("text", "")
-                gaps = rx.findall(t)
-                if not 1 <= len(gaps) <= 3: bad.append(f"{i}: text needs 1 to 3 gaps")
-                rights = {low(a) for g in gaps for a in g.split("::")[0].split("|")}
-                d = x.get("decoys", [])
-                if not 4 <= len(d) <= 8: bad.append(f"{i}: needs 4 to 8 decoys")
-                if any(low(a) in rights for a in d): bad.append(f"{i}: decoy equals a right answer")
-                if dash(json.dumps(x, ensure_ascii=False)): bad.append(f"{i}: dash")
+                if want and i not in want: bad.append(f"{i}: not a multi-gap sentence in gaps/in"); continue
+                n = len(rx.findall(want[i]["text"])) if i in want else 0
+                g = x.get("swap")
+                if not isinstance(g, list) or not g: bad.append(f"{i}: swap must be a list of groups"); continue
+                seen = set()
+                for grp in g:
+                    if not isinstance(grp, list) or len(grp) < 2 or any(not isinstance(k, int) or not 0 <= k < n for k in grp): bad.append(f"{i}: bad group {grp} ({n} gaps)")
+                    elif seen & set(grp): bad.append(f"{i}: gap in two groups")
+                    else: seen |= set(grp)
     else:
         raise SystemExit("check what? parts | ladder | balance | repair | lessons | decoys | gaps")
     print("\n".join(bad) if bad else f"{stage}: OK")

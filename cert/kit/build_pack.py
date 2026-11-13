@@ -247,10 +247,9 @@ for iid, c in LADDER.items():
 DECOYS = load_dir("decoys", "out")
 for iid, d in DECOYS.items():
     if d.get("decoys"): LADDER[iid] = {**LADDER.get(iid, {}), "decoys": d["decoys"]}
-# Word-bank sentences rewritten so every block fits one gap only (gaps/out/DD.json): text and decoys.
+# Gaps whose right blocks may trade places (gaps/out/DD.json: {"swap": [[0, 1]]}).
 for iid, g in load_dir("gaps", "out").items():
-    cur = LADDER.get(iid, {})
-    LADDER[iid] = {**cur, **({"text": g["text"]} if g.get("text") else {}), **({"decoys": g["decoys"]} if g.get("decoys") else {})}
+    if g.get("swap"): LADDER[iid] = {**LADDER.get(iid, {}), "swap": g["swap"]}
 items = [ladder_item(it, LADDER.get(it["id"]), P_TYPE) for it in items]
 missing_ladder = [it["id"] for it in items if it["type"] in (f"{P_TYPE}-begrip", f"{P_TYPE}-cloze", f"{P_TYPE}-typed", f"{P_TYPE}-uitleg") and "rec" not in it["fields"]]
 for it in items:

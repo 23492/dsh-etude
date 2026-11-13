@@ -304,7 +304,8 @@ function bank() {
     gaps.forEach((g, i) => {
       const val = placed[i] ? textOf[placed[i]] : "";
       g.className = `gap czr ${marks[i] ? "ok" : "no"}`;
-      g.innerHTML = marks[i] ? esc(val) : `${val ? `<s>${esc(val)}</s>` : ""}<b>${esc(key?.answers?.[i]?.[0] ?? "")}</b>`;
+      const right = grade?.details?.fix?.[i] ?? key?.answers?.[i]?.[0] ?? "";
+      g.innerHTML = marks[i] ? esc(val) : `${val ? `<s>${esc(val)}</s>` : ""}<b>${esc(right)}</b>`;
     });
   });
 }

@@ -23,8 +23,8 @@ read = lambda n: open(os.path.join(HERE, n)).read()
 
 KINDS = {
     # kind: (old built-in kind, faces in carry order, fields)
-    "begrip": ("basic", ["herken", "produceer"], ["front", "back", "extra", "text", "rec", "decoys"]),
-    "cloze": ("cloze", ["herken", "produceer"], ["text", "explanation", "rec", "decoys"]),
+    "begrip": ("basic", ["herken", "produceer"], ["front", "back", "extra", "text", "rec", "decoys", "swap"]),
+    "cloze": ("cloze", ["herken", "produceer"], ["text", "explanation", "rec", "decoys", "swap"]),
     "typed": ("typed", ["herken", "produceer"], ["prompt", "answers", "explanation", "rec", "decoys"]),
     "uitleg": ("free", ["herken", "onthoud"], ["prompt", "reference", "rubric", "explanation", "rec"]),
     "koppel": ("match", ["produceer"], ["prompt", "pairs", "explanation"]),
@@ -41,6 +41,7 @@ FIELD = {
     "text": {"kind": "markdown", "private": True, "description": "Zin met {{blanks}} op de kernbegrippen."},
     "rec": {"kind": "json", "private": True, "label": "Herkennen", "description": "Meerkeuze voor de herken-face: {prompt, options:[{text, correct, why}], explanation}."},
     "explanation": {"kind": "markdown", "private": True},
+    "swap": {"kind": "json", "private": True, "label": "Uitwisselbaar", "description": "Gaten waarvan de goede blokjes van plek mogen wisselen: [[0, 1]] (volgorde in de zin, vanaf 0)."},
     "decoys": {"kind": "list", "private": True, "label": "Lokkers", "description": "Foute blokjes voor de woordbank, moeilijkste eerst. Tijdens het leren alleen de goede blokjes; in review komen er lokkers bij, meer naarmate de kaart sterker wordt."},
     "prompt": {"kind": "markdown", "required": True},
     "answers": {"kind": "list", "required": True, "private": True},
@@ -132,6 +133,8 @@ def ladder_item(item, ladder_content, prefix="sfl"):
         f["text"] = lc["text"]
     if lc.get("decoys"):
         f["decoys"] = lc["decoys"]
+    if lc.get("swap"):
+        f["swap"] = lc["swap"]
     f["ladder"] = [{"id": "item", "requires": [item["id"]]}]
     return {**item, "type": f"{prefix}-{kind}", "fields": f}
 

@@ -28,20 +28,14 @@ The produce rung of a concept card is a sentence with gaps. The learner never ty
 
 Then run `python3 <kit>/stage.py check <project> decoys`.
 
-## One block, one gap (sentences with 2 or 3 gaps)
+## Gaps that may swap (sentences with 2 or 3 gaps)
 
-A word bank only tests something when each right block fits exactly one gap. "plus {{user licenses}} and {{permission set licenses}}" fails: the two blocks are the same kind of thing in a list, so they swap freely and the card tests dragging, not knowledge. The same goes for any gap a decoy could fill without the sentence becoming false while a right block sits elsewhere.
+When the right blocks of two gaps could trade places and the sentence stays true ("plus {{user licenses}} and {{permission set licenses}}"), both placements count as right. Keep every gap; do not rewrite the sentence to pin each block. The grader needs to know which gaps form such a group.
 
-Stage: `python3 <kit>/stage.py gaps-in <project>` writes `gaps/in/DD.json`, a list of `{id, question, answer, text, decoys}` for every word-bank sentence with 2 or more gaps. One subagent per domain reads each and writes `gaps/out/DD.json`, keyed by item id, **only for the sentences that fail**:
+Stage: `python3 <kit>/stage.py gaps-in <project>` writes `gaps/in/DD.json`, a list of `{id, question, answer, text, decoys}` for every word-bank sentence with 2 or more gaps. One subagent per domain writes `gaps/out/DD.json`, keyed by item id, **only for sentences that have a group**:
 
 ```json
-{"sfa.d01.company.19": {"text": "Company Information shows the {{Organization ID}}, edition and default time zone; its {{User Licenses}} related list shows used and remaining seats per license type.", "decoys": ["Profile", "Role", "Feature Licenses", "Login History", "Permission Set Licenses", "Company Profile"]}}
+{"sfa.d01.company.19": {"swap": [[1, 2]]}}
 ```
 
-Test each gap: take every other right block and every decoy and put it in this gap. If the sentence could still be true, or a reader cannot tell from the words around the gap which block goes there, the sentence fails. Fixes, in order of preference:
-
-- Give each gap its own anchor in the sentence: a role, a place, a cause ("the {{Organization ID}} identifies the org; the {{User Licenses}} list counts seats").
-- Fill in all but one member of a list and keep one gap for it, or keep the gaps that are not interchangeable.
-- Keep 1 to 3 gaps; one good gap beats three swappable ones.
-
-Keep the facts of the card exactly; never add a fact the `answer` does not hold. Write `decoys` for the new text by the rules above (a decoy must not fit any gap). Then `stage.py check <project> gaps` and build again.
+Gaps are numbered from 0 in sentence order. Put gaps in one group when each one's answer, placed in the other's gap, leaves a sentence that is still true according to the card (members of one list, the parts of "X and Y", items joined by "or"). Leave gaps apart when the sentence gives them different roles (master and detail, before and after, a number and its unit). Then `stage.py check <project> gaps` and build again.
