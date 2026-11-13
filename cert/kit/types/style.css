@@ -40,6 +40,18 @@
 .czr.no s { color: var(--again, var(--danger)); font-weight: 400; margin-right: 6px; }
 .czr.no b { background: var(--accent); padding: 0 3px; border-radius: 5px; }
 
+/* word bank: drag blocks into the gaps */
+.sfl-bank-text { line-height: 2.2; }
+.gap { display: inline-block; min-width: 4.5em; min-height: 1.55em; vertical-align: middle; margin: 0 3px; padding: 0 8px; border-radius: 8px; border: 1.5px dashed var(--muted-foreground); font-size: 0.9em; line-height: 1.5; text-align: center; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.gap.filled { border-style: solid; border-color: var(--primary); background: color-mix(in oklab, var(--primary) 12%, transparent); font-weight: 600; }
+.gap.sel, .gap.over { border-color: var(--foreground); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 25%, transparent); }
+.gap.czr { border: 0; min-width: 0; padding: 0 3px; cursor: default; }
+.wbank { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 0.4rem; }
+.wbank.done { display: none; }
+.wchip { font: 500 1rem/1.3 var(--font-sans); padding: 0.5rem 0.85rem; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card, transparent); color: var(--foreground); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.wchip.used { opacity: 0.25; pointer-events: none; }
+.wchip.ghost { position: fixed; z-index: 50; pointer-events: none; transform: translate(-50%, -60%); border-color: var(--primary); background: var(--background, #fff); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+
 /* typed */
 .sfl-typed.e-input { font-size: 1.2rem; }
 

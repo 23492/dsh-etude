@@ -4,6 +4,7 @@ Kinds and their faces (ladder rungs), first face first. On a type change Etude m
 existing card onto the first face of the new type, so the rung that matches the old card comes first.
 
   begrip  (was basic):  herken -> produceer   (a free-recall rung cost 152 cards; see references/design.md)
+  produceer on begrip, cloze and typed is a word bank: drag blocks into the gaps, decoys join in review (references/decoys.md)
   cloze   (was cloze):  herken -> produceer
   typed   (was typed):  herken -> produceer
   uitleg  (was free):   herken -> onthoud
@@ -22,9 +23,9 @@ read = lambda n: open(os.path.join(HERE, n)).read()
 
 KINDS = {
     # kind: (old built-in kind, faces in carry order, fields)
-    "begrip": ("basic", ["herken", "produceer"], ["front", "back", "extra", "text", "rec"]),
-    "cloze": ("cloze", ["herken", "produceer"], ["text", "explanation", "rec"]),
-    "typed": ("typed", ["herken", "produceer"], ["prompt", "answers", "explanation", "rec"]),
+    "begrip": ("basic", ["herken", "produceer"], ["front", "back", "extra", "text", "rec", "decoys"]),
+    "cloze": ("cloze", ["herken", "produceer"], ["text", "explanation", "rec", "decoys"]),
+    "typed": ("typed", ["herken", "produceer"], ["prompt", "answers", "explanation", "rec", "decoys"]),
     "uitleg": ("free", ["herken", "onthoud"], ["prompt", "reference", "rubric", "explanation", "rec"]),
     "koppel": ("match", ["produceer"], ["prompt", "pairs", "explanation"]),
     "orden": ("order", ["produceer"], ["prompt", "steps", "explanation"]),
@@ -40,6 +41,7 @@ FIELD = {
     "text": {"kind": "markdown", "private": True, "description": "Zin met {{blanks}} op de kernbegrippen."},
     "rec": {"kind": "json", "private": True, "label": "Herkennen", "description": "Meerkeuze voor de herken-face: {prompt, options:[{text, correct, why}], explanation}."},
     "explanation": {"kind": "markdown", "private": True},
+    "decoys": {"kind": "list", "private": True, "label": "Lokkers", "description": "Foute blokjes voor de woordbank, moeilijkste eerst. Tijdens het leren alleen de goede blokjes; in review komen er lokkers bij, meer naarmate de kaart sterker wordt."},
     "prompt": {"kind": "markdown", "required": True},
     "answers": {"kind": "list", "required": True, "private": True},
     "reference": {"kind": "markdown", "required": True, "private": True},
@@ -59,9 +61,9 @@ COMMON = [
 ]
 NAMES = {"begrip": "Begrip", "cloze": "Gatentekst", "typed": "Term", "uitleg": "Uitleg", "koppel": "Koppelen", "orden": "Volgorde", "examen": "Proefexamenvraag", "oefen": "Oefenvraag"}
 DESCR = {
-    "begrip": "Een begrip in twee stappen: herkennen (meerkeuze), dan zelf invullen (gatentekst, hints alleen tijdens het leren). Elke stap is een eigen kaart met eigen planning.",
-    "cloze": "Gatentekst, met een herken-stap (meerkeuze) erbij. Hints alleen tijdens het leren.",
-    "typed": "Een term zelf typen, met een herken-stap (meerkeuze) erbij. Hints alleen tijdens het leren.",
+    "begrip": "Een begrip in twee stappen: herkennen (meerkeuze), dan de zin afmaken door blokjes naar de gaten te slepen. Tijdens het leren alleen de goede blokjes, daarna lokkers erbij. Elke stap is een eigen kaart met eigen planning.",
+    "cloze": "Gatentekst met een woordbank: sleep de blokjes naar de gaten. Tijdens het leren alleen de goede blokjes, in review komen er lastige lokkers bij. Met een herken-stap (meerkeuze) ervoor.",
+    "typed": "Een term kiezen uit een woordbank met lastige lokkers, met een herken-stap (meerkeuze) ervoor. Niets typen.",
     "uitleg": "Uitleggen in eigen woorden (AI beoordeelt), met een herken-stap (meerkeuze) erbij.",
     "koppel": "Koppelen. Tijdens het leren staat er een paar al goed als hint.",
     "orden": "In volgorde zetten. Tijdens het leren staat de eerste stap al goed als hint.",
@@ -128,6 +130,8 @@ def ladder_item(item, ladder_content, prefix="sfl"):
         f["rec"] = lc["recognize"]
     if kind == "begrip" and lc.get("text"):
         f["text"] = lc["text"]
+    if lc.get("decoys"):
+        f["decoys"] = lc["decoys"]
     f["ladder"] = [{"id": "item", "requires": [item["id"]]}]
     return {**item, "type": f"{prefix}-{kind}", "fields": f}
 

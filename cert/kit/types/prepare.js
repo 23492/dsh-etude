@@ -107,12 +107,33 @@ function dropGiveaways(prompt, text) {
   return out;
 }
 
-function cloze(prompt, text, explanation, reveal) {
-  const { shown, blanks } = blanksOf(dropGiveaways(prompt, text), support);
+// Produce without typing: drag blocks from a word bank into the gaps. While learning the bank holds only the
+// right blocks; once the card is in review, tricky wrong blocks (fields.decoys, hardest first) join it, more as
+// the memory matures. Grading is unchanged: the answer is the block text placed in each gap.
+const decoyCount = () => {
+  const pool = Array.isArray(fields.decoys) ? fields.decoys.length : 0;
+  if (!pool) return 0;
+  if (!L) return Math.min(3, pool);
+  if (teaching || known === 0 || state === "new" || state === "learning" || state === "relearning") return 0;
+  const s = Number(L.card.stability) || 0;
+  return Math.min(pool, s < 7 ? 2 : s < 30 ? 4 : pool);
+};
+function bank(prompt, text, explanation, reveal) {
+  const { shown, blanks } = blanksOf(text, false);
+  const n = decoyCount();
+  const right = blanks.map((b) => String(b.answers[0]));
+  const low = (x) => String(x).trim().toLowerCase();
+  const taken = new Set(blanks.flatMap((b) => b.answers.map(low)));
+  const wrong = (Array.isArray(fields.decoys) ? fields.decoys : []).map(String).filter((d) => !taken.has(low(d))).slice(0, n);
+  const chips = rng.shuffle([...right, ...wrong]).map((t, i) => ({ id: "b" + i, text: t }));
   return {
-    view: { mode: "cloze", prompt: prompt ?? "", text: shown, blanks: blanks.map((b, i) => ({ id: i, hint: b.hint, size: Math.max(4, ...b.answers.map((a) => a.length)) })) },
+    view: { mode: "bank", prompt: prompt ?? "", text: shown, blanks: blanks.map((b, i) => ({ id: i })), bank: chips, level: n },
     key: { mode: "cloze", answers: blanks.map((b) => b.answers), explanation: explanation ?? "", reveal: reveal ?? "" },
   };
+}
+// Every gap stays a gap: with a word bank the learner places all the right blocks (dropGiveaways was for typing).
+function cloze(prompt, text, explanation, reveal) {
+  return bank(prompt, text, explanation, reveal);
 }
 
 function typed(prompt, answers, explanation) {
@@ -168,7 +189,8 @@ function rungFor(kind) {
     return recall(f.front, f.back, f.extra);
   }
   if (kind === "cloze") return cloze("", f.text, f.explanation, "");
-  if (kind === "typed") return typed(f.prompt, f.answers, f.explanation);
+  // A term is produced from the bank as well: one gap under the question.
+  if (kind === "typed") return bank(f.prompt, `{{${f.answers.map((a) => String(a).replace(/[|}]/g, " ")).join("|")}}}`, f.explanation, "");
   if (kind === "uitleg") return free(f.prompt, f.reference, f.rubric, f.explanation);
   if (kind === "koppel") return match(f.prompt, f.pairs, f.explanation);
   if (kind === "orden") return order(f.prompt, f.steps, f.explanation);
@@ -190,7 +212,7 @@ function build(kind) {
   }
   const out = rungFor(kind);
   out.view.support = support && face !== "herken" && face !== "examen" && face !== "oefen";
-  const variant = face === "examen" || face === "oefen" ? "opties" : face === "herken" ? "keuze" : support ? "steun" : "vrij";
+  const variant = face === "examen" || face === "oefen" ? "opties" : face === "herken" ? "keuze" : out.view.mode === "bank" ? `bank${out.view.level}` : support ? "steun" : "vrij";
   // Variant keys are per face: Etude keys learned difficulty by item#variant, and faces are different questions.
   return {
     ...out,

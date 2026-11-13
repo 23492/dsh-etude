@@ -9,6 +9,8 @@ Usage: python3 stage.py <command> <project-dir> [args]
   analysis-in          parts -> analysis/in/DD.json (MCQs with their topic's concept cards) for references/analysis.md
   holdout              analysis/out/*.json -> repair/holdout.json: blueprint-weighted mock exams (cert.json mocks)
   repair-in            parts + analysis + holdout -> repair/in/DD.json for references/repair.md
+  decoys-in            built pack -> decoys/in/DD.json (fill-in and typed items: the word-bank rung needs tricky
+                       wrong blocks, references/decoys.md)
   measure              length-cue report over every MCQ the pack will contain (target: correct strictly
                        longest <= 30%, median correct/wrong ratio 0.9 to 1.1)
   check <stage>        validate the outputs of ladder|balance|repair|lessons|parts
@@ -175,6 +177,30 @@ elif CMD == "repair-in":
         dump({"domain": dd, "concepts": concepts, "exams": exams, "gaps": gaps}, os.path.join(ROOT, "repair", "in", f"{dd}.json"))
         print(dd, len(concepts), "concepts", collections.Counter(e["role"] for e in exams))
 
+elif CMD == "decoys-in":
+    pk = load(os.path.join(ROOT, C["paths"].get("pack", "deck.pack.json")))
+    if not pk: raise SystemExit("build the pack first (build_pack.py --allow-gaps)")
+    T = C.get("ids", {}).get("types", "cl")
+    rx = re.compile(r"\{\{([\s\S]+?)\}\}")
+    done = {}
+    for fp in glob.glob(os.path.join(ROOT, "decoys", "out", "*.json")): done.update(load(fp))
+    per = collections.defaultdict(list)
+    for it in pk["items"]:
+        if it.get("archived"): continue
+        f = it["fields"]
+        if it["type"] in (f"{T}-begrip", f"{T}-cloze") and rx.search(f.get("text") or ""):
+            answers = [m.split("::")[0].split("|") for m in rx.findall(f["text"])]
+            entry = {"id": it["id"], "sentence": f["text"], "blanks": [[a.strip() for a in x] for x in answers], "context": f.get("front") or f.get("explanation") or ""}
+        elif it["type"] == f"{T}-typed":
+            entry = {"id": it["id"], "sentence": f["prompt"] + " {{" + "|".join(f["answers"]) + "}}", "blanks": [f["answers"]], "context": f.get("explanation", "")}
+        else: continue
+        if "--all" not in ARGS and it["id"] in done: continue
+        m = re.match(rf"{re.escape(P)}\.d(\w+?)\.", it["id"])
+        per[m.group(1) if m else "xx"].append({**entry, "topic": it["deck"].split("::")[-1]})
+    for dd in DOMS:
+        dump(per.get(dd, []), os.path.join(ROOT, "decoys", "in", f"{dd}.json"))
+        print(dd, len(per.get(dd, [])), "items need decoys")
+
 elif CMD == "measure":
     lad, bal, rep = {}, {}, {}
     for fp in glob.glob(os.path.join(ROOT, "ladder", "out", "*.json")): lad.update(load(fp))
@@ -278,8 +304,21 @@ elif CMD == "check":
                 w = len(L[k].split())
                 if not lo <= w <= hi: bad.append(f"{tf}: {w} words (want {lo} to {hi})")
                 if dash(L[k]): bad.append(f"{tf}: dash")
+    elif stage == "decoys":
+        low = lambda x: re.sub(r"\s+", " ", str(x).strip().lower())
+        for dd in DOMS:
+            want = load(os.path.join(ROOT, "decoys", "in", f"{dd}.json"), [])
+            out = load(os.path.join(ROOT, "decoys", "out", f"{dd}.json"), {})
+            for x in want:
+                d = (out.get(x["id"]) or {}).get("decoys")
+                if not d: bad.append(f"{x['id']}: missing"); continue
+                rights = {low(a) for b in x["blanks"] for a in b}
+                if not 4 <= len(d) <= 8: bad.append(f"{x['id']}: needs 4 to 8 decoys, has {len(d)}")
+                if len({low(a) for a in d}) != len(d): bad.append(f"{x['id']}: duplicate decoy")
+                if any(low(a) in rights for a in d): bad.append(f"{x['id']}: decoy equals a right answer")
+                if dash(json.dumps(d, ensure_ascii=False)): bad.append(f"{x['id']}: dash")
     else:
-        raise SystemExit("check what? parts | ladder | balance | repair | lessons")
+        raise SystemExit("check what? parts | ladder | balance | repair | lessons | decoys")
     print("\n".join(bad) if bad else f"{stage}: OK")
     sys.exit(1 if bad else 0)
 else:

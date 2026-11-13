@@ -190,6 +190,125 @@ function cloze() {
   });
 }
 
+// ---------- bank (produceer): drag blocks into the gaps, no typing ----------
+// Drag a block onto a gap, or tap a block to drop it in the selected (else first empty) gap. Tap a filled gap
+// to send its block back. Dropping on a filled gap swaps.
+function bank() {
+  const marker = (i) => `ETUDEBLANK${i}X`;
+  let html = etude.md(v.text.replace(/\u27e6(\d+)\u27e7/g, (_, i) => marker(i)));
+  html = html.replace(/ETUDEBLANK(\d+)X/g, (_, i) => `<span class="gap" data-i="${i}" tabindex="0" role="button"></span>`);
+  body.innerHTML = `<div class="prose sfl-cloze sfl-bank-text">${html}</div><div class="wbank">${v.bank.map((b) => `<button type="button" class="wchip" data-id="${b.id}">${esc(b.text)}</button>`).join("")}</div>`;
+  const gaps = etude.$$(".gap");
+  const chips = etude.$$(".wchip");
+  const textOf = Object.fromEntries(v.bank.map((b) => [b.id, b.text]));
+  const placed = gaps.map(() => null);
+  if (Array.isArray(etude.answer)) etude.answer.forEach((t, i) => { const b = v.bank.find((x) => x.text === t && !placed.includes(x.id)); if (b && i < placed.length) placed[i] = b.id; });
+  let sel = null;
+  const render = () => {
+    gaps.forEach((g, i) => {
+      g.textContent = placed[i] ? textOf[placed[i]] : "";
+      g.classList.toggle("filled", !!placed[i]);
+      g.classList.toggle("sel", sel === i);
+    });
+    chips.forEach((c) => c.classList.toggle("used", placed.includes(c.dataset.id)));
+    etude.setReady(placed.every(Boolean));
+  };
+  const put = (id, i) => {
+    const from = placed.indexOf(id);
+    if (from >= 0) placed[from] = placed[i]; // moved between gaps: swap; a block it replaces otherwise goes back to the bank
+    placed[i] = id;
+    sel = null;
+    render();
+  };
+  const firstEmpty = () => placed.indexOf(null);
+  const live = () => etude.mode === "answer";
+  // Keyboard: Enter on a gap clears it or selects it.
+  gaps.forEach((g, i) => g.addEventListener("keydown", (e) => {
+    if (!live() || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    if (placed[i]) placed[i] = null;
+    sel = sel === i ? null : i;
+    render();
+  }));
+  // Pointer drag with a floating copy; a short press without movement counts as a tap.
+  let drag = null;
+  const gapAt = (x, y) => { const el = document.elementFromPoint(x, y); return el ? el.closest(".gap") : null; };
+  const startDrag = (id, e, from) => {
+    drag = { id, from, x0: e.clientX, y0: e.clientY, moved: false, ghost: null, pid: e.pointerId };
+  };
+  const moveDrag = (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+    if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+    if (!drag.moved) {
+      drag.moved = true;
+      drag.ghost = document.createElement("div");
+      drag.ghost.className = "wchip ghost";
+      drag.ghost.textContent = textOf[drag.id];
+      document.body.append(drag.ghost);
+    }
+    e.preventDefault();
+    drag.ghost.style.left = e.clientX + "px";
+    drag.ghost.style.top = e.clientY + "px";
+    gaps.forEach((g) => g.classList.remove("over"));
+    gapAt(e.clientX, e.clientY)?.classList.add("over");
+  };
+  const endDrag = (e) => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    gaps.forEach((g) => g.classList.remove("over"));
+    if (d.ghost) d.ghost.remove();
+    if (!d.moved) {
+      if (d.from == null) {
+        if (placed.includes(d.id)) return;
+        const i = sel != null ? sel : firstEmpty();
+        if (i >= 0) put(d.id, i);
+      } else { placed[d.from] = null; sel = d.from; render(); }
+      return;
+    }
+    const g = gapAt(e.clientX, e.clientY);
+    if (g) {
+      const i = Number(g.dataset.i);
+      if (d.from != null && placed[i]) { placed[d.from] = placed[i]; placed[i] = d.id; sel = null; render(); }
+      else put(d.id, i);
+    } else if (d.from != null) { placed[d.from] = null; render(); }
+  };
+  chips.forEach((c) => c.addEventListener("pointerdown", (e) => {
+    if (!live() || e.button > 0 || c.classList.contains("used")) return;
+    e.preventDefault();
+    c.setPointerCapture?.(e.pointerId);
+    startDrag(c.dataset.id, e, null);
+  }));
+  gaps.forEach((g, i) => g.addEventListener("pointerdown", (e) => {
+    if (!live() || e.button > 0) return;
+    e.preventDefault();
+    if (!placed[i]) { sel = sel === i ? null : i; render(); return; }
+    g.setPointerCapture?.(e.pointerId);
+    startDrag(placed[i], e, i);
+  }));
+  window.addEventListener("pointermove", moveDrag, { passive: false });
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", () => { if (drag?.ghost) drag.ghost.remove(); drag = null; gaps.forEach((g) => g.classList.remove("over")); });
+  window.addEventListener("keydown", (e) => {
+    if (!live() || e.ctrlKey || e.metaKey || e.altKey) return;
+    const n = "123456789".indexOf(e.key);
+    if (n >= 0 && n < chips.length) { e.preventDefault(); const c = chips[n]; if (!c.classList.contains("used")) { const i = sel != null ? sel : firstEmpty(); if (i >= 0) put(c.dataset.id, i); } }
+    if (e.key === "Backspace") { const i = placed.map(Boolean).lastIndexOf(true); if (i >= 0) { e.preventDefault(); placed[i] = null; render(); } }
+    if (e.key === "Enter" && placed.every(Boolean)) { e.preventDefault(); etude.submit(); }
+  });
+  render();
+  etude.getAnswer(() => placed.map((id) => (id ? textOf[id] : "")));
+  etude.onResult(({ grade, key }) => {
+    const marks = grade?.details?.marks ?? [];
+    etude.$(".wbank")?.classList.add("done");
+    gaps.forEach((g, i) => {
+      const val = placed[i] ? textOf[placed[i]] : "";
+      g.className = `gap czr ${marks[i] ? "ok" : "no"}`;
+      g.innerHTML = marks[i] ? esc(val) : `${val ? `<s>${esc(val)}</s>` : ""}<b>${esc(key?.answers?.[i]?.[0] ?? "")}</b>`;
+    });
+  });
+}
+
 // ---------- typed (produceer) ----------
 function typed() {
   body.innerHTML = `<input class="e-input sfl-typed" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(v.placeholder || "")}" autofocus>`;
@@ -367,4 +486,4 @@ function free() {
   etude.onResult(() => { ta.disabled = true; });
 }
 
-({ mc, cloze, typed, match, order, reveal, free })[v.mode]();
+({ mc, cloze, bank, typed, match, order, reveal, free })[v.mode]();

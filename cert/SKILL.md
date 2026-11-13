@@ -7,7 +7,7 @@ description: Build an Etude study deck for a multiple-choice certification exam 
 
 A certification deck has three parts, each with its own job:
 
-- **Concept cards** teach the facts and decisions the exam tests. Each is taught first (one tap) and then climbs a ladder of forms: recognise (multiple choice), then produce (fill in, type, match, order). Hints only while learning.
+- **Concept cards** teach the facts and decisions the exam tests. Each is taught first (one tap) and then climbs a ladder of forms: recognise (multiple choice), then produce (drag blocks from a word bank into the gaps, match, order; never typing). While learning the bank holds only the right blocks; in review tricky wrong blocks join it, more as the card matures.
 - **Practice questions** are the exam-style questions. They are never drilled: one clean try, released a few days after the concepts behind them are learned, mixed across topics. A miss or a guess brings those concept cards back and the question once more after 4 days.
 - **Two sealed mock exams**, weighted like the blueprint, seen nowhere else. Readiness comes only from them: book at 75% or more.
 
@@ -98,9 +98,12 @@ One subagent per domain with [references/repair.md](references/repair.md) (stron
 
 ```
 python3 <kit>/build_pack.py <project>                 # pack + teaches.json, fails on gaps
-node <kit>/verify_types.mjs <project>/deck.pack.json  # prepare and grade over every item, face and learner state
+python3 <kit>/stage.py decoys-in <project>            # fill-in and term items still without wrong blocks
+ <kit>/verify_types.mjs <project>/deck.pack.json  # prepare and grade over every item, face and learner state
 node <kit>/sim.cjs <project>/deck.pack.json <project>/teaches.json 42 <newPerDay> '<newPerFace JSON>' 3
 ```
+
+Wrong blocks for the word bank: one subagent per domain with [references/decoys.md](references/decoys.md) (Sonnet-class, tell it to reread every item for decoys that would also be true), then `stage.py check <project> decoys` and build again. Spot-check items a subagent flags: a decoy that is also right marks a right answer wrong.
 
 Pick `newPerDay` and `newPerFace` from the simulation (SF: 48 a day, at most 12 practice; 47 min in week 1, 70 at the peak, every concept seen by day 30). Write them into `cert.json` `preset` and build again.
 

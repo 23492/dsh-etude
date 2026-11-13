@@ -243,6 +243,10 @@ LADDER = load_dir("ladder", "out")
 LADDER.update({k: v for k, v in REPAIR_LADDER.items() if v})
 for iid, c in LADDER.items():
     if c.get("recognize"): c["recognize"] = {**c["recognize"], "options": balanced(f"herken|{iid}", c["recognize"]["options"])}
+# Decoys for the word-bank rung (decoys/out/DD.json, references/decoys.md).
+DECOYS = load_dir("decoys", "out")
+for iid, d in DECOYS.items():
+    if d.get("decoys"): LADDER[iid] = {**LADDER.get(iid, {}), "decoys": d["decoys"]}
 items = [ladder_item(it, LADDER.get(it["id"]), P_TYPE) for it in items]
 missing_ladder = [it["id"] for it in items if it["type"] in (f"{P_TYPE}-begrip", f"{P_TYPE}-cloze", f"{P_TYPE}-typed", f"{P_TYPE}-uitleg") and "rec" not in it["fields"]]
 for it in items:
